@@ -1,26 +1,27 @@
 # Quick start guide
 
 This is a short, plain-language starting point for **artists and other
-non-programmers** building an AR project on top of `feature_template`. It
+non-programmers** building an AR project on top of `ar-module-template`. It
 does **not** explain any individual feature or how any component works —
 for that, see [FEATURE-CATALOG.md](FEATURE-CATALOG.md) (what's available)
 and the matching `<FEATURE>-FEATURE-GUIDE.md` (how to use it). This page is
 only about: what kind of file to open, what to do with it, and which
 command to run.
 
-## What is `feature_template`?
+## What is `ar-module-template`?
 
-A collection of ready-made AR effects (sound buttons, fade effects, a
+A starting point to create your own AR experiences for integration into the an-alle.net platform 
+plus a collection of ready-made AR effects (sound buttons, fade effects, a
 shard-shatter effect, ...) that any project built from this template can
 pick and choose from. It isn't a finished artwork by itself — it's a
 starting point you copy pieces out of into your own scene.
 
 ## Starting your own project, or just trying something out
 
-Don't build directly on the `feature_template` branch itself — it's the
+Don't build directly on the `ar-module-template` branch itself — it's the
 shared library every project starts from, and it needs to stay generic and
 uncluttered for the next person too. Create your **own branch (or fork)
-from `feature_template`**, and do all your project-specific work there:
+from `ar-module-template`**, and do all your project-specific work there:
 your own scene content, your own assets, any testing or experimenting.
 That's true whether you're starting a real project or just trying a
 feature out to see what it looks like.
@@ -90,11 +91,11 @@ together is written down.
 You don't need to understand how these commands work internally — just run
 them and look at the result.
 
-## Contributing a feature back to `feature_template`
+## Contributing a feature back to `ar-module-template`
 
 If something you built on your own project turns out generic and useful
 enough that future projects should have it too, you can propose adding it
-to `feature_template` itself with a pull request. Before opening one,
+to `ar-module-template` itself with a pull request. Before opening one,
 make sure it's ready:
 
 - **It's a finished feature, not a work-in-progress experiment.** Half-done

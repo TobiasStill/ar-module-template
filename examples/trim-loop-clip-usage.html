@@ -1,0 +1,61 @@
+<!--
+  TRIM-LOOP-CLIP — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when playing a looped glTF animation with its dead lead-in
+  trimmed off (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/trim-loop-clip.ts):
+    trim-loop-clip   Put on the SAME entity as gltf-model, INSTEAD OF
+                      animation-mixer. Shifts every clip so it starts
+                      playing immediately (no held first-frame pause) and
+                      loops it; keeps multiple clips on one model synced to
+                      one shared clock instead of drifting apart.
+
+  Do NOT also add animation-mixer to the same entity — both would drive
+  the same model's pose and fight over it. See
+  TRIM-LOOP-CLIP-FEATURE-GUIDE.md §4.
+-->
+
+<!-- ============================================================
+     Example 1 — a single-clip model, slowed down and played
+     ping-pong (forward then reverse).
+     ============================================================ -->
+<a-entity gltf-model="#AnimatedCharacter" trim-loop-clip="timeScale: 0.4; loop: pingpong"></a-entity>
+
+<!-- ============================================================
+     Example 2 — a model with a rig animation PLUS a separately-keyed
+     submesh (e.g. a shapekey-driven part) — both clips found on the
+     model ("*") are kept in sync automatically, no extra attributes
+     needed for that.
+     ============================================================ -->
+<a-entity gltf-model="#AnimatedProp" trim-loop-clip="loop: repeat"></a-entity>
+
+<!-- ============================================================
+     Example 3 — play only ONE named clip out of several on the
+     model, once, holding the final frame.
+     ============================================================ -->
+<a-entity gltf-model="#Prop" trim-loop-clip="clip: OpenLid; loop: once; clampWhenFinished: true"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  clip                 string, default "*". Which clip(s) to play, by name.
+                        "*" plays every clip found on the model.
+
+  timeScale             number, default 1. Playback speed multiplier, same
+                        meaning as animation-mixer's timeScale.
+
+  loop                   string, default "pingpong". One of "once" /
+                        "repeat" / "pingpong". Ping-pong plays forward then
+                        reverse, back and forth.
+
+  clampWhenFinished       boolean, default false. Hold the final frame when
+                        a non-looping ("once") clip finishes, instead of
+                        snapping back to the start.
+
+  Nothing to call — starts automatically once the model's clips are
+  available. Changing any attribute at runtime rebuilds and restarts
+  playback with the new settings.
+-->

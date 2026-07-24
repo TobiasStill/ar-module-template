@@ -1,0 +1,76 @@
+<!--
+  RENDER-ORDER — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when controlling draw order for overlapping transparent
+  surfaces (e.g. into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/render-order.ts):
+    render-order   Put on ANY entity with a loaded model. Sets three.js
+                   renderOrder on every mesh inside it. Higher draws later
+                   (i.e. on top of / composited over lower values). Single-
+                   property schema — the whole value IS the number:
+                   render-order="2", not render-order="value: 2".
+
+  Read RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md before reaching for this on
+  anything transparent — render order only matters for the transparent
+  render queue, can't fix a self-overlapping single mesh, and has real
+  edge cases (why real alpha blending vs. dithering, material cloning,
+  onBeforeCompile caching) that are easy to get subtly wrong otherwise.
+-->
+
+<!-- ============================================================
+     Example 1 — a standalone transparent object, not part of any
+     LOD group. render-order is an ABSOLUTE value here: it sets the
+     real three.js renderOrder directly and nothing else touches it
+     afterward.
+     ============================================================ -->
+<a-entity gltf-model="#GlassPane" material="transparent: true; opacity: 0.4" render-order="1"></a-entity>
+<a-entity gltf-model="#InnerGlow" render-order="0"></a-entity>
+<!-- render-order="0" on InnerGlow draws it BEFORE GlassPane (render-order
+     "1"), so the glass's real alpha blending composites over it correctly. -->
+
+<!-- ============================================================
+     Example 2 — inside an [lod-object] group, render-order means
+     something narrower: only the LOCAL draw order among this ONE
+     object's own .lod-mesh/.lod-billboard children (see
+     LOD-BILLBOARD-FEATURE-GUIDE.md). lod-manager reads these values
+     off the attribute and recomputes the REAL runtime renderOrder
+     every frame, banded per instance by camera distance, so whole
+     instances also sort correctly against each OTHER — you never
+     set that part yourself.
+     ============================================================ -->
+<a-entity lod-object="nearDistance: 15; farDistance: 25">
+  <a-entity class="lod-mesh-group">
+    <a-entity class="lod-mesh" gltf-model="#OuterShell" render-order="1"></a-entity>
+    <a-entity class="lod-mesh" gltf-model="#InnerPart" render-order="0"></a-entity>
+  </a-entity>
+  <a-entity class="lod-billboard" gltf-model="#ShellBillboard" render-order="2" billboard unlit-material></a-entity>
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  render-order   number, default 0. The whole attribute value — not a
+                 named sub-property. Sets three.js `renderOrder` on every
+                 mesh of the loaded model once it loads. Higher values draw
+                 later (composite on top of lower ones) — but ONLY relative
+                 to other objects in the same render queue (opaque vs.
+                 transparent — see RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md);
+                 it can never make a transparent object draw before an
+                 opaque one or vice versa, and it sorts whole mesh objects,
+                 not individual triangles within one mesh.
+
+  Outside any [lod-object] group: this sets the real runtime value
+  directly and permanently (until the model reloads).
+
+  Inside an [lod-object] group's .lod-mesh/.lod-billboard children: this
+  value is read once, as a LOCAL order within that one group — the actual
+  runtime renderOrder is recomputed every frame by lod-manager, offset by a
+  large fixed base plus a camera-distance-ranked per-instance band, so it
+  can never numerically collide with a standalone render-order value
+  elsewhere in the scene (like Example 1's GlassPane/InnerGlow). You don't
+  need to coordinate the two — just tag each .lod-mesh/.lod-billboard child
+  with whatever LOCAL order makes sense relative to its own siblings.
+-->

@@ -1,0 +1,106 @@
+<!--
+  MIRROR-SHARD + LIQUID-TEXTURE — recreating Zhichang_module's original scene
+  ===============================================================================
+  Not compiled or served by anything in this project — reference markup
+  showing both components combined to reproduce the ORIGINAL "DMS Liquid
+  Civic Mirror" installation's actual scene wiring (lighting, attribute
+  values, target image) as closely as the universalized system allows. Read
+  MIRROR-SHARD-FEATURE-GUIDE.md and LIQUID-TEXTURE-FEATURE-GUIDE.md first —
+  this file assumes you already know what each attribute does; it's about
+  mapping the ORIGINAL's specific values onto the new components, and being
+  explicit about what couldn't (or deliberately wasn't) carried over.
+
+  Source: Zhichang_module's src/ArModule.vue + src/a-frame-components/
+  dms-mirror-shards.ts (component data "dms-data/single-liquid-series.json":
+  physicalHeightMeters: 1.86, panel src: single-liquid-final-target.png →
+  this template's src/assets/liquid-texture-target-1.webp).
+-->
+
+<!-- Scene lighting — identical values to the original's ArModule.vue. -->
+<a-entity light="type: ambient; intensity: 0.9; color: #e9feff"></a-entity>
+<a-entity light="type: directional; intensity: 1.4; color: #ffffff" position="0.6 2.6 1.2"></a-entity>
+
+<!-- Keeps the shard field's animated geometry from being frustum-culled
+     once GPU motion moves vertices outside the mesh's bind-pose bounding
+     sphere — same component the original's ArModule.vue also mounted. -->
+<a-entity no-frustum-cull></a-entity>
+
+<!-- The inner illustration layer. Uses the original's PRIMARY target image
+     (single-liquid-final-target.png → liquid-texture-target-1.webp here)
+     and a palette approximating the original shader's actual blue
+     palette() stops (paper #F4FBFF, cyan #0094FF, ultramarine #000FA8 —
+     the 5-stop original's outer/dominant-mid/innermost stops; this
+     component only has 3, so "ice"/"cobalt" in between aren't separately
+     representable). The original ALSO had a second "authoritySrc" target
+     (authoritarian-orange-final-target-v1.png → liquid-texture-target-2.webp
+     here) and a polarity mechanic that blended toward whichever of the two
+     was "winning" — see LIQUID-TEXTURE-FEATURE-GUIDE.md's "What changed
+     from the source" section for why that dual-target system was dropped
+     rather than ported; this recreation uses only the primary target. -->
+<a-entity
+    id="mirror-shard-liquid"
+    liquid-texture="target: #liquid-texture-target-1; colorLight: #F4FBFF; colorMid: #0094FF; colorDark: #000FA8; quality: auto">
+</a-entity>
+
+<!-- The shard field itself.
+       height: 1.86 * 1.55 — the original's physicalHeightMeters (1.86,
+         from single-liquid-series.json) times its layoutScale (1.55).
+       scale="2 2 2" — the original's separate displayScale (2), kept as a
+         distinct multiplier here mainly to show it's just this template's
+         normal a-frame `scale` attribute — mirror-shard has no scale
+         attribute of its own to duplicate that (see
+         MIRROR-SHARD-FEATURE-GUIDE.md's "under the hood" section).
+       idleRotationEnabled/idleRotationStrength/shockAfterglow: identical
+         values to the original (which happen to already be this
+         component's own defaults — set explicitly here anyway, for a
+         direct side-by-side with the original's own explicit values).
+     Not carried over from the original's attribute list, and why:
+       autoCycle          — was dead in the source itself (declared,
+                             never read anywhere).
+       panelLimit          — multi-panel layout was dropped; this is
+                             always a single field now.
+       enableFracture      — the shatter-and-fall mode was dropped; the
+                             original's own real usage had it off too.
+       allowQueryScale/queryScaleMin/queryScaleMax — a URL-query debug
+                             convenience for the standalone prototype, not
+                             template functionality.
+       faceCameraOnStart, placeFromCameraOnStart, manualPlacementOnStart,
+       placementDistance, placementGroundY, placementDelayMs,
+       autoPlacementFallbackMs — all part of the custom SLAM placement
+                             system this port explicitly does not
+                             replicate (this template already gets AR
+                             placement from 8th Wall + A-Frame natively;
+                             see MIRROR-SHARD-FEATURE-GUIDE.md). `position`
+                             below is a plain static placeholder — position
+                             this entity the way any other scene content in
+                             your own ArModule.vue is positioned.
+       liquidShockCoupling — was a separate multiplier on how strongly a
+                             shard tap nudged the liquid effect; in this
+                             port a pulse's own `strength` already IS that
+                             coupling (see mirror-shard.ts's pulse()) — no
+                             separate attribute needed. -->
+<a-entity
+    class="cantap"
+    position="0 1 -3"
+    scale="2 2 2"
+    mirror-shard="
+      height: 2.883;
+      idleRotationEnabled: true;
+      idleRotationStrength: 1;
+      shockAfterglow: 1;
+      liquidTarget: #mirror-shard-liquid;
+    ">
+</a-entity>
+
+<!--
+  Tapping the shard field (via class="cantap") triggers one ripple that
+  moves both the shard displacement and the liquid reveal together — see
+  the previous conversation turn / MIRROR-SHARD-FEATURE-GUIDE.md for why
+  this is now a single unified ripple rather than the original's two
+  separately-labelled "Add democratic blue" / "Add authoritarian orange"
+  buttons, which (per the source's own addInteraction()) already triggered
+  the identical shard ripple in both cases — the only thing those two
+  buttons ever varied was which of the two dropped target images the
+  liquid effect leaned toward. There is no 2D GUI panel in this
+  recreation at all, by design.
+-->

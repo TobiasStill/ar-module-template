@@ -1,0 +1,125 @@
+<!--
+  RANDOM-FIELD — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when scattering copies of one or more entities across an area
+  (e.g. into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/random-field.ts):
+    random-field   Put on any entity. Clones the entities you reference by
+                   id (via `items`) and scatters the clones across a
+                   fixed-width strip on the ground, honouring a min/max
+                   spacing and a copy count. Referenced entities are hidden
+                   after cloning so only the placed copies render.
+
+  random-field knows nothing about LOD, render order, or motion — it only
+  clones and places. Combine it with those separately:
+    - Author LOD/billboard structure directly on your referenced entity
+      (see LOD-BILLBOARD-FEATURE-GUIDE.md) — clones carry it automatically.
+    - Add [proximity-wave-group] on this SAME entity for shared wave/idle
+      motion across every placed copy (see PROXIMITY-WAVE-FEATURE-GUIDE.md
+      and examples/proximity-wave-usage.html).
+-->
+
+<!-- ============================================================
+     Example 1 — a single referenced entity, several copies.
+     ============================================================ -->
+<a-entity id="propA" gltf-model="#MyProp" scale="2 2 2"></a-entity>
+
+<a-entity random-field="
+    items: #propA;
+    areaWidth: 15;
+    minDistance: 2.5;
+    maxDistance: 6;
+    copies: 8;
+    yawMax: 180;
+"></a-entity>
+
+<!-- ============================================================
+     Example 2 — several referenced entities placed in the SAME
+     field (shuffled together), each getting the same `copies`
+     count, with minCopyDistance keeping copies of the SAME entity
+     from clustering. One of them is a parent/child bundle (a group
+     with more than one child mesh) — random-field clones the whole
+     subtree, whatever it contains.
+     ============================================================ -->
+<a-entity id="propB" gltf-model="#MyOtherProp" scale="1.5 1.5 1.5"></a-entity>
+
+<a-entity id="propBundle">
+  <a-entity gltf-model="#BundlePartA"></a-entity>
+  <a-entity gltf-model="#BundlePartB"></a-entity>
+</a-entity>
+
+<a-entity random-field="
+    items: #propB, #propBundle;
+    areaWidth: 20;
+    elevation: 0.5;
+    elevationVariation: 0.2;
+    minDistance: 1.8;
+    maxDistance: 2.3;
+    copies: 2;
+    minCopyDistance: 3.5;
+    tiltMin: 0;
+    tiltMax: 12;
+    yawMax: 2;
+    scale: 1.1;
+"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  items               selectorAll, required. A CSS selector list (e.g.
+                       "#propA, #propB") naming the entities to clone. Each
+                       can be a single mesh or a whole parent/child bundle —
+                       random-field deep-clones whatever it finds and
+                       doesn't care what's inside. Every referenced entity
+                       is hidden (visible: false) once cloning starts.
+
+  areaWidth           number, default 20. FIXED width (metres, X axis),
+                       centred on this entity's own origin so it extends
+                       equally left/right. There is no depth setting —
+                       depth grows automatically away from the viewer
+                       (into -Z) to fit however many copies there are, so
+                       minDistance/maxDistance always hold exactly
+                       regardless of `copies`.
+
+  elevation           number, default 0. Base Y height of every clone.
+  elevationVariation  number, default 0. ± random offset from `elevation`.
+
+  yawMax              number, default 180 (degrees). Each clone's Y
+                       rotation gets a random value in [-yawMax, +yawMax]
+                       ADDED to its source entity's own authored Y
+                       rotation. 180 = fully random heading; 0 = no extra
+                       spin (every clone points the way its source did).
+
+  tiltMin / tiltMax   number, both default 0 (degrees). X and Z each get an
+                       independent random tilt magnitude in this range
+                       (± direction), ADDED to the source's own authored
+                       X/Z rotation. Leave both 0 to keep clones as level
+                       as their source entity already is.
+
+  minDistance         number, default 2.5. Hard minimum gap (metres)
+                       between any two clones.
+  maxDistance         number, default 6. Max gap to the nearest neighbour
+                       — both bounds are honoured exactly.
+
+  copies              int, default 1. How many copies of EACH referenced
+                       entity (uniform across all of them) — 1 with two
+                       `items` places 2 total; 3 places 6 total, etc.
+
+  minCopyDistance     number, default 0 (disabled). Minimum ground-plane
+                       gap between two copies of the SAME referenced
+                       entity — only meaningful when `copies` > 1. If the
+                       area's too tight to honour it for every copy,
+                       placement degrades gracefully instead of failing.
+
+  scale               number, default 1. Uniform multiplier on each
+                       clone's OWN authored scale (so a source entity's
+                       existing scale is respected, not replaced).
+
+  Position is always fully field-computed (there's no meaningful "offset"
+  reading for where in the field something goes); rotation and scale
+  compose with whatever the source entity already had authored, so a
+  source with e.g. a fixed correction tilt keeps it on every clone.
+-->

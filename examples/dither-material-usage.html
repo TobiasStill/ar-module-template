@@ -1,0 +1,76 @@
+<!--
+  DITHER-MATERIAL — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when applying a manual, FIXED-opacity dithered transparency to
+  a loaded model (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/dither-material.ts):
+    dither-material   Put on ANY entity with a loaded model or primitive.
+                       Dithers every mesh's material into the OPAQUE render
+                       queue (screen-door discard instead of real alpha
+                       blending) at a fixed opacity — no camera-distance
+                       input at all, unlike proximity-cutout/
+                       proximity-fade-dither.
+
+  This is the FOURTH component in this template that patches
+  material.onBeforeCompile (alongside proximity-fade-dither,
+  proximity-cutout, and lod-object's internal dithering) — don't target the
+  same material with two of them at once. See
+  DITHER-MATERIAL-FEATURE-GUIDE.md §4 and
+  RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md §4.4.
+
+  Do NOT combine with unlit-material on the same entity — unlit-material
+  replaces the material outright, discarding (or being discarded by)
+  whichever runs first. See DITHER-MATERIAL-FEATURE-GUIDE.md §4.
+-->
+
+<!-- ============================================================
+     Example 1 — dither a model at its own authored alpha (no
+     override).
+     ============================================================ -->
+<a-entity gltf-model="#glass" dither-material></a-entity>
+
+<!-- ============================================================
+     Example 2 — force a fixed, denser dither density regardless of
+     what the glTF itself authored.
+     ============================================================ -->
+<a-entity gltf-model="#glass" dither-material="opacity: 0.4"></a-entity>
+
+<!-- ============================================================
+     Example 3 — the three ditherType options side by side, so you
+     can compare their look directly. Purely aesthetic, no
+     functional difference between them.
+     ============================================================ -->
+<a-entity gltf-model="#glass" position="-2 0 0" dither-material="ditherType: bayer"></a-entity>
+<a-entity gltf-model="#glass" position="0 0 0" dither-material="ditherType: noise"></a-entity>
+<a-entity gltf-model="#glass" position="2 0 0" dither-material="ditherType: interleaved-gradient"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  opacity      number, default -1 ("keep each material's own alpha"). >= 0
+               overrides every mesh's material opacity BEFORE dithering —
+               higher values dither a denser/more-solid-looking pattern,
+               lower values a sparser one. Reactive: changing this at
+               runtime re-applies immediately.
+
+  ditherType   string, default "bayer". One of "bayer" / "noise" /
+               "interleaved-gradient" — see DITHER-MATERIAL-FEATURE-GUIDE.md
+               §2 for what each looks like (each reuses the exact formula
+               already used by an existing feature elsewhere in this
+               codebase: bayer = proximity-fade-dither.ts, noise =
+               proximity-cutout.ts, interleaved-gradient =
+               lod-object.ts's setupDitherMaterial()). Purely aesthetic, no
+               functional difference. An unrecognised value falls back to
+               "bayer" with a console warning. Reactive: changing this at
+               runtime re-applies immediately (forces a shader recompile).
+
+  Removing the component (or unmounting the entity) restores every
+  affected material's original transparent/depthWrite/opacity/
+  onBeforeCompile/customProgramCacheKey — the only material-mutating
+  component in this template with a full teardown, since a dithered
+  material's shader patch is otherwise the kind of change you don't want
+  silently left behind on module switch.
+-->

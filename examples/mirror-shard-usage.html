@@ -1,0 +1,87 @@
+<!--
+  MIRROR-SHARD — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when wiring up a mirror-shard field in a scene (e.g. into
+  ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/mirror-shard.ts):
+    mirror-shard   Put on any entity. Builds a 112-shard glass field (three
+                   merged draw calls total) that ripples on tap and sways
+                   gently at idle. Position/rotate/scale the entity like
+                   any other — there's no separate placement system.
+
+  IMPORTANT — tap-to-pulse needs `class="cantap"` on the entity. mirror-
+  shard listens for the standard A-Frame `click` event (the same one the
+  host's shared camera cursor/raycaster produces for any `.cantap` element
+  — see MIRROR-SHARD-FEATURE-GUIDE.md's incompatibilities section for a
+  caveat on this). It does NOT set that class itself, so you must add it —
+  omitting it just means pulse() is never called automatically; the field
+  still renders and idles normally.
+-->
+
+<!-- ============================================================
+     Example 1 — a bare shard field, tap-to-pulse only, no inner
+     illustration layer (flat tint fallback).
+     ============================================================ -->
+<a-entity
+    class="cantap"
+    position="0 1 -3"
+    mirror-shard="height: 1.86">
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — paired with liquid-texture for the inner
+     illustration layer, using one of the bundled example textures
+     (src/assets/liquid-texture-target-2.webp, salvaged from
+     Zhichang_module for this purpose — see
+     examples/liquid-texture-usage.html for both bundled textures and
+     liquid-texture's own attributes; it works completely standalone
+     too, this is just how the two compose).
+     ============================================================ -->
+<a-entity id="shard-liquid" liquid-texture="target: #liquid-texture-target-2; colorLight: #fff8f0; colorMid: #ff8a00; colorDark: #4a1600"></a-entity>
+
+<a-entity
+    class="cantap"
+    position="0 1 -3"
+    mirror-shard="height: 1.86; liquidTarget: #shard-liquid">
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  height                 number, default 1.86. Overall physical height
+                          (metres) the shard field is scaled to. There is
+                          no separate width attribute — width follows from
+                          the bundled shard layout's own aspect ratio.
+
+  motionEnabled           boolean, default true. Set false to freeze the
+                          field in its rest pose (e.g. for a screenshot).
+
+  idleRotationEnabled     boolean, default true. The gentle idle sway.
+
+  idleRotationStrength    number, default 1 (range ~0-2). Scales the idle
+                          sway's amplitude.
+
+  shockAfterglow          number, default 1 (range ~0-2). Scales the
+                          lingering glow/ripple after a pulse's initial
+                          impact.
+
+  liquidTarget            selector, optional. An entity carrying
+                          [liquid-texture] — its rendered texture is
+                          sampled for the inner illustration layer. Omit
+                          for a flat tinted inner layer instead.
+
+  Method: pulse(x?, y?, strength?) — triggers an impact ripple at local
+  (x, y) (both default 0, i.e. the field's own centre). strength defaults
+  to a small random value in ~1.16-1.46 if omitted (matching a plain tap).
+  If liquidTarget is set, also pulses it so the two stay visually coupled.
+  Call this from any other component/script — e.g. from an [ar-button]'s
+  tap handler on a co-located or nearby entity — for tap sources other
+  than the built-in `click` listener.
+
+  Event emitted on the entity (el.emit, non-bubbling): "mirror-shard-pulse"
+  with detail {x, y, strength} — listen for this on the entity to react to
+  a pulse from any source (built-in tap or a manual pulse() call).
+-->

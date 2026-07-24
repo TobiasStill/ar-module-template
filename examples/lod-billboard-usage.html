@@ -1,0 +1,162 @@
+<!--
+  LOD-OBJECT / LOD-MANAGER / BILLBOARD — usage & wiring examples
+  ==================================================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when setting up distance-based level-of-detail (e.g. into
+  ArModule.vue's <template>).
+
+  Components involved (src/a-frame-components/):
+    lod-manager      ONE per module, on an ancestor of every lod-object it
+                     should drive (e.g. the module root). Ticks every
+                     registered lod-object, cross-fading detail ↔ billboard
+                     by camera distance, and keeps every instance's real
+                     three.js renderOrder correctly banded so instances
+                     never interleave with each other (see
+                     RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md).
+    lod-object       Put on the wrapper entity around ONE detail/billboard
+                     pair. Requires a specific child structure — see below.
+    billboard        Put on any entity to spin it about local Y to always
+                     face the camera (typically the billboard child).
+    unlit-material   Put on any entity to flatten its materials to a fully
+                     lit, shadeless look regardless of scene lighting —
+                     typically wanted on a billboard, since a flat image
+                     plane usually shouldn't be shaded by scene lights.
+
+  === REQUIRED STRUCTURE ===
+  lod-object finds its parts by CSS class, not by any naming convention on
+  your assets — assemble exactly this shape under the entity that carries
+  lod-object:
+
+    <a-entity lod-object="nearDistance: 15; farDistance: 25">
+      <a-entity class="lod-mesh-group">
+        <a-entity class="lod-mesh" gltf-model="#PartA" render-order="1"></a-entity>
+        <a-entity class="lod-mesh" gltf-model="#PartB" render-order="2"></a-entity>
+        <!-- as many .lod-mesh children as your detailed model needs —
+             this is the "possibly split into multiple parts" case;
+             a single part is just one .lod-mesh child. -->
+      </a-entity>
+      <a-entity class="lod-billboard" gltf-model="#MyPropBillboard" billboard unlit-material></a-entity>
+    </a-entity>
+
+  - .lod-mesh-group wraps the full-detail representation — one or more
+    .lod-mesh children, each its own glTF (or any A-Frame primitive).
+  - .lod-billboard is a SEPARATE glb (not a live render of the detailed
+    parts) — typically a flat plane + baked texture image, exported from
+    your 3D tool as its own small asset, that stands in for the detailed
+    group once it's far enough away to fade to.
+  - render-order on each .lod-mesh/.lod-billboard child controls draw
+    order WITHIN this one lod-object only (see RENDER-ORDER-FEATURE-GUIDE.md
+    and RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md) — omit it to fall back to
+    document order, fine for opaque-only parts.
+  - Element order matters: lod-object's own init() queries its children, so
+    build the .lod-mesh-group/.lod-billboard structure BEFORE the entity
+    that carries the lod-object attribute finishes loading — in plain
+    markup (unlike a script assembling this at runtime) this is automatic,
+    since A-Frame loads children before parents.
+-->
+
+<!-- Exactly one lod-manager for the whole module — put it on your module
+     root, wrapping every lod-object you want it to drive. -->
+<a-entity lod-manager="chunksPerCycle: 6">
+
+  <!-- ============================================================
+       Example 1 — a single hand-authored LOD object: one detail
+       part, one billboard.
+       ============================================================ -->
+  <a-entity position="0 0 -8" lod-object="nearDistance: 15; farDistance: 25; fadeSpeed: 3">
+    <a-entity class="lod-mesh-group">
+      <a-entity class="lod-mesh" gltf-model="#MyProp" render-order="1"></a-entity>
+    </a-entity>
+    <a-entity class="lod-billboard" gltf-model="#MyPropBillboard" render-order="2" billboard unlit-material="brightness: 0.8"></a-entity>
+  </a-entity>
+
+  <!-- ============================================================
+       Example 2 — a multi-part detail group with per-part fade
+       overrides and a dithered part. data-lod-near/data-lod-far give
+       ONE part its own tighter fade band (layered on top of, and
+       multiplied with, the group's own nearDistance/farDistance
+       fade) — e.g. a glow part that should only appear very close
+       up even though the rest of the object is already "detailed"
+       from farther out. data-opacity-override replaces (not dims) a
+       part's own glTF-authored alpha — useful when a part is
+       technically alphaMode: BLEND but barely translucent as
+       modelled. data-lod-dither switches a part's fade from real
+       alpha blending to a dithered discard (see
+       RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md for exactly why) — use
+       it on a part that MUST reliably show through a translucent
+       neighbour, regardless of render-order.
+       ============================================================ -->
+  <a-entity position="3 0 -8" lod-object="nearDistance: 12; farDistance: 20">
+    <a-entity class="lod-mesh-group">
+      <a-entity class="lod-mesh" gltf-model="#BodyPart" render-order="1" data-opacity-override="0.4"></a-entity>
+      <a-entity
+          class="lod-mesh"
+          gltf-model="#GlowPart"
+          render-order="0"
+          data-lod-near="4"
+          data-lod-far="6"
+          data-lod-dither>
+      </a-entity>
+    </a-entity>
+    <a-entity class="lod-billboard" gltf-model="#OtherPropBillboard" render-order="2" billboard unlit-material></a-entity>
+  </a-entity>
+
+  <!-- ============================================================
+       Example 3 — combined with random-field: author the LOD
+       structure ONCE on the referenced prototype entity; every
+       placed clone carries it automatically, since random-field
+       deep-clones whatever subtree you give it.
+       ============================================================ -->
+  <a-entity id="lodProp" lod-object="nearDistance: 15; farDistance: 20">
+    <a-entity class="lod-mesh-group">
+      <a-entity class="lod-mesh" gltf-model="#FieldProp"></a-entity>
+    </a-entity>
+    <a-entity class="lod-billboard" gltf-model="#FieldPropBillboard" billboard unlit-material></a-entity>
+  </a-entity>
+
+  <a-entity random-field="items: #lodProp; areaWidth: 20; minDistance: 2.5; maxDistance: 6; copies: 4"></a-entity>
+
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  lod-manager
+  -----------
+  chunksPerCycle   number, default 6. Each tick only this fraction of
+                   registered lod-objects is recomputed (round-robin), to
+                   spread the cost across frames instead of paying for
+                   every instance every frame.
+
+  lod-object
+  ----------
+  nearDistance   number, default 15 (metres). ≤ this ⇒ the .lod-mesh-group
+                 is fully shown, the billboard fully hidden.
+  farDistance    number, default 25 (metres). ≥ this ⇒ the reverse —
+                 billboard fully shown, detail group fully hidden.
+                 Between the two, both cross-fade smoothly.
+  fadeSpeed      number, default 3. How quickly the crossfade catches up to
+                 its target as distance changes.
+
+  Per-.lod-mesh child data attributes (all optional):
+    data-lod-near / data-lod-far     A tighter fade band for just this one
+                                     part, layered on top of (multiplied
+                                     with) the group fade above.
+    data-opacity-override            Replaces this part's own glTF-authored
+                                     alpha outright (not a further dim).
+    data-lod-dither                  Presence-only flag — fades this part
+                                     via dithered discard instead of real
+                                     alpha blending.
+
+  billboard          no attributes — always spins to face the camera.
+
+  unlit-material
+  ---------------
+  keepEmissive   boolean, default true. Fold any emissive glow into the
+                 flat colour so it survives the flatten.
+  brightness     number, default 1. Uniform dim on the flat colour
+                 (unlit, so this is the only way to dim it) — 0.5 = half,
+                 0 = black.
+  tint           color, default "" (none). Multiplied into the flat colour.
+-->

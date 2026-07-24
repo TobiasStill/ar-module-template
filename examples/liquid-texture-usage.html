@@ -1,0 +1,116 @@
+<!--
+  LIQUID-TEXTURE — usage & wiring examples
+  ===========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when wiring up a liquid-texture effect in a scene (e.g. into
+  ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/liquid-texture.ts):
+    liquid-texture   Put on ANY entity — a plane, or an entity with no
+                     visible geometry of its own at all. Renders an
+                     animated procedural "ink" marbling texture to an
+                     offscreen render target, optionally revealing a
+                     target image as pulse() is called. Exposes the
+                     result via getTexture() for any OTHER material to
+                     sample (see mirror-shard.ts for one consumer) — it
+                     doesn't need to be visible itself to be useful.
+
+  This is a generic, feature-agnostic effect — not specific to
+  mirror-shard (see the naming-convention comment in src/manifest.ts for
+  why it has no feature prefix). Use it standalone, or feed its texture
+  into any other material.
+
+  BUNDLED EXAMPLE TEXTURES: src/assets/liquid-texture-target-1.webp and
+  liquid-texture-target-2.webp (auto-injected as #liquid-texture-target-1 /
+  -2, file name sans extension, like any other asset) are real images
+  salvaged from Zhichang_module for this purpose specifically — so Example
+  2/3 below actually demonstrate the `target` attribute revealing a real
+  photo, not just a placeholder id. They're demo content: swap them for
+  your own project's imagery (any image works; there's no required size —
+  see LIQUID-TEXTURE-FEATURE-GUIDE.md for a note on right-sizing one for
+  production).
+-->
+
+<!-- ============================================================
+     Example 1 — standalone, on a visible plane, procedural-only
+     (no target image — the fbm marbling still animates and
+     responds to taps; the image-attraction terms just stay at
+     zero without a target).
+     ============================================================ -->
+<a-plane
+    class="cantap"
+    position="0 1.5 -2"
+    width="1" height="1.4"
+    liquid-texture="colorLight: #f4fcff; colorMid: #00b7e6; colorDark: #001f66"
+    material="shader: flat; src: #dummy-white"
+    id="standalone-liquid">
+</a-plane>
+<!-- ^ the visible <a-plane>'s own `material` is unrelated to the effect —
+     liquid-texture renders to an offscreen texture regardless; if you want
+     to actually SEE it on this plane's own face, replace this entity's
+     material with one built around getTexture() the same way mirror-shard
+     does (see liquid-texture.ts's exported createLiquidSampleMaterial). -->
+
+<!-- ============================================================
+     Example 2 — with a bundled custom target image. `target` is a
+     selector to an <img> asset (auto-injected from src/assets/ like
+     any other asset). The ink reveals toward the image's dark/ink
+     areas and follows its edges as pulse() is called repeatedly.
+     ============================================================ -->
+<a-entity
+    liquid-texture="target: #liquid-texture-target-1; colorLight: #f4fcff; colorMid: #3aa0ff; colorDark: #001f66; quality: high"
+    id="poster-liquid-1">
+</a-entity>
+
+<!-- ============================================================
+     Example 3 — the second bundled target, with a palette to match
+     its own tones instead of Example 2's. Nothing else about the
+     component changes — `target` and the three colors are the only
+     attributes that vary between "themes."
+     ============================================================ -->
+<a-entity
+    liquid-texture="target: #liquid-texture-target-2; colorLight: #fff8f0; colorMid: #ff8a00; colorDark: #4a1600; quality: high"
+    id="poster-liquid-2">
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  target       selector, optional. An <img> asset (e.g. from src/assets/)
+               the ink is attracted toward and reveals over time. Omit for
+               a self-contained procedural marbling look with no image
+               dependency — this is the built-in fallback, not a degraded
+               mode; the fbm/cellular/swirl terms all work without a
+               target, only the image-attraction terms are inert.
+
+  colorLight   color, default #f4fcff. Palette's palest stop.
+  colorMid     color, default #00b7e6. Palette's mid stop.
+  colorDark    color, default #001f66. Palette's darkest stop.
+
+  quality      'auto' | 'high' | 'balanced' | 'low', default 'auto'.
+               'auto' picks 'balanced' on a probable mobile device, 'high'
+               otherwise — checked once at init, not per frame. Trades fbm
+               detail / cell count / render-target resolution / refresh
+               rate for GPU cost.
+
+  opacity      number, default 0.88. Overall alpha multiplier on the
+               rendered ink.
+
+  Methods:
+    pulse(x?, y?, strength?)   Nudges the ink toward fully revealed and
+                                swirls it from (x, y) — both normalized
+                                0..1 texture space, default 0.5/0.5 (centre)
+                                if omitted. strength (default 1, range
+                                ~0.25-2) scales how much this one pulse
+                                moves the needle.
+    reset()                     Fades the revealed ink back to nothing and
+                                clears any in-flight ripple.
+    getTexture()                 Returns the rendered THREE.Texture for any
+                                other material to sample.
+
+  Tap-to-pulse: like mirror-shard, this listens for the standard `click`
+  event and needs `class="cantap"` on its own entity to receive one from
+  the host's shared cursor/raycaster — see MIRROR-SHARD-FEATURE-GUIDE.md's
+  incompatibilities section for a caveat on that event.
+-->

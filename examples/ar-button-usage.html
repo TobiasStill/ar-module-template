@@ -1,0 +1,159 @@
+<!--
+  AR-BUTTON / SOUND-BUTTON — usage & wiring examples
+  ====================================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when wiring up 3D buttons in a scene (e.g. into ArModule.vue's
+  <template>, inside your module root <a-entity>).
+
+  Components involved (src/a-frame-components/):
+    ar-button-manager   ONE per module, on the module root. Generic gaze
+                        raycast + tap routing — see that file's header
+                        comment for the full how/why.
+    ar-button           Put on ANY entity — a plane, a glTF model, a bare
+                        a-entity — to make it a button with its own trigger
+                        zone, gaze pulse, and optional distance fade. Emits
+                        "ar-button-tap" / "ar-button-gaze-start" /
+                        "ar-button-gaze-end" on itself; knows nothing about
+                        what a tap should DO.
+    sound-controller    ONE per module, on the module root. Single-active-
+                        sound state machine driving every [sound-button] AND
+                        the 2D GUI panel — see examples/sound-gui-panel.html.
+    sound-button        Put ALONGSIDE [ar-button] on a button entity to make
+                        tapping it play/pause/stop a `sound` entity. Purely
+                        audio behavior; has no idea about raycasting.
+
+  ar-button and sound-button are independent: use ar-button on its own for
+  any future tap-driven behavior (listen for "ar-button-tap"), or pair it
+  with sound-button specifically for audio playback, as shown below.
+
+  A NOTE ON THE ASSET IDS BELOW: #Exhibit, #EnglishNarration, #EnglishIcon,
+  etc. are illustrative only — stand-ins for a project's own 3D models/audio
+  clips, which aren't part of this template. The four #sound-* icon ids used
+  in examples/sound-gui-panel.html ARE real assets already in src/assets/
+  (sound-start.webp, sound-stop.webp, sound-play.webp, sound-pause.webp) —
+  that `sound-` prefix is this template's naming convention for keeping a
+  feature's own files identifiable inside the shared, flat src/assets/ and
+  src/a-frame-components/ folders without subfolders (src/assets/ is scanned
+  non-recursively, so a subfolder there wouldn't even be picked up) or path
+  changes when copied into another project. Apply the same `<feature>-`
+  prefix to any new assets/components a feature adds; leave genuinely
+  generic, feature-agnostic files (ar-button.ts, ar-button-manager.ts, ...)
+  unprefixed. See the comment above the `components` map in src/manifest.ts.
+-->
+
+<!-- Module root: exactly one ar-button-manager + one sound-controller for
+     the whole module, no matter how many buttons exist. -->
+<a-entity ar-button-manager sound-controller>
+
+  <!-- ============================================================
+       Example 1 — a pair of sound buttons on a 3D model, one per
+       language of narration (e.g. an audio-guide exhibit with
+       English/German buttons).
+       ============================================================ -->
+  <a-entity gltf-model="#Exhibit" position="-3.2 -0.01 -2.5">
+
+    <!-- Sound sources: A-Frame's built-in `sound` component, referencing an
+         asset id auto-derived from src/assets/ (EnglishNarration.mp3 -> id
+         "EnglishNarration"). autoplay: false — sound-button starts these. -->
+    <a-entity id="eng_sound" sound="src: #EnglishNarration; autoplay: false"></a-entity>
+    <a-entity id="ger_sound" sound="src: #GermanNarration; autoplay: false"></a-entity>
+
+    <a-plane
+        id="eng_button"
+        src="#EnglishIcon"
+        material="shader: flat; transparent: true; alpha-test: 0.8"
+        width="1" height="0.24"
+        position="1.6 0.43 0.85" rotation="-10 -4 0"
+
+        ar-button="near: 2.5; far: 4; pulse: 0.15; zoneSize: 2.8 0.6 0.3; zoneOffset: 0 0.2 0"
+        sound-button="sound: #eng_sound">
+    </a-plane>
+
+    <!-- Second button of the pair, 0.23 units below the first — same shape,
+         zoneOffset mirrored downward instead of upward. -->
+    <a-plane
+        id="ger_button"
+        src="#GermanIcon"
+        material="shader: flat; transparent: true; alpha-test: 0.8"
+        width="1" height="0.24"
+        position="1.6 0.2 0.85" rotation="-10 -4 0"
+
+        ar-button="near: 2.5; far: 4; pulse: 0.15; zoneSize: 2.8 0.6 0.3; zoneOffset: 0 -0.2 0"
+        sound-button="sound: #ger_sound">
+    </a-plane>
+
+  </a-entity>
+
+  <!-- ============================================================
+       Example 2 — ar-button on an arbitrary 3D object (not a flat plane),
+       with a manually sized trigger zone that's bigger than — and offset
+       from — the object's own pivot. No sound-button here: this shows
+       ar-button working standalone for any future tap-driven behavior.
+       A separate component (not shown) would listen for "ar-button-tap"
+       on this same element to react to it.
+       ============================================================ -->
+  <a-entity
+      gltf-model="#SomeProp"
+      position="0 0 -2"
+      ar-button="zoneSize: 1.2 1.2 1.2; zoneOffset: 0 0.6 0; pulse: 0.2">
+  </a-entity>
+
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  ar-button
+  ---------
+  enabled      boolean, default true. Set false to exclude this button from
+               the raycast/pulse without removing it from the DOM (e.g. a
+               used-up, one-shot button).
+
+  zoneSize     vec3 "x y z", default "1 1 1". Size, in THIS ENTITY'S OWN
+               LOCAL UNITS (before any of its own or an ancestor's scaling
+               is applied on top), of the trigger-zone box raycasts are
+               tested against.
+
+  zoneOffset   vec3 "x y z", default "0 0 0". Centre of the trigger-zone
+               box, as an offset from this entity's own PIVOT/ORIGIN — not
+               from its visible geometry's centre, if that differs from the
+               pivot (e.g. a glTF model whose mesh isn't centred on its
+               root transform).
+
+               zoneSize/zoneOffset together replace the old pattern of a
+               separate, invisible, wider hit-area plane nested as a child
+               entity: the zone is defined directly on the button entity and
+               rotates/scales with it (the raycast is done in the entity's
+               own local space, not by expanding the zone into a world-space
+               axis-aligned box), so it stays correct on tilted/rotated
+               buttons and on non-planar 3D objects, not just flat planes.
+
+  near / far   number, world-space metres, both default 0. Distance from the
+               camera at which the button is full size (near) / shrunk to
+               nothing (far), smoothstep-fading between. 0/0 (the default)
+               disables distance fade entirely — full size regardless of
+               distance. Buttons faded below 5% size are automatically
+               excluded from the raycast (can't be gazed at or tapped) and
+               can't pulse.
+
+  pulse        number, default 0.15. Uniform x/y/z scale bump applied while
+               this is the button currently being gazed at, e.g. 0.15 =
+               grows to 115% of its (faded) size at the pulse's peak.
+
+  Events emitted on the button's own element (el.emit, non-bubbling):
+    ar-button-gaze-start   this button just became the gazed one
+    ar-button-gaze-end     this button just stopped being the gazed one
+    ar-button-tap          a tap landed while this button was gazed at —
+                            listen for this to implement any tap behavior
+                            (sound-button.ts is one example)
+
+  sound-button
+  ------------
+  sound        selector, required. Points at an entity carrying A-Frame's
+               built-in `sound` component (e.g. sound="src: #my_clip;
+               autoplay: false") — playFromStart/pauseAudio/resume/stop act
+               on it. Must be placed on the SAME entity as [ar-button] (it
+               reacts to that component's "ar-button-tap" event on their
+               shared element).
+-->

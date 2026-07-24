@@ -1,0 +1,87 @@
+<!--
+  IMAGE TRACKING — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when anchoring content to a real-world printed/displayed image
+  (into ArModule.vue's <template>).
+
+  Components involved — xrextras-named-image-target, xrextras-play-video:
+  NEITHER is ours. Both are provided by the 8th Wall `xrextras` library,
+  already loaded in every preview flavour and by the real host — there is
+  no src/a-frame-components/*.ts file to copy and nothing to register in
+  manifest.ts for these two tags specifically (contrast with every other
+  example file in this folder). What IS project-specific, and what you DO
+  need to set up yourself, is:
+    1. Your own target image, compiled into src/image-targets/*.json +
+       images via 8th Wall's image-target compiler tool (see
+       IMAGE-TRACKING-FEATURE-GUIDE.md §1) — this project already ships one
+       example target (video-target.json) for you to test against or
+       replace.
+    2. Registering that target in src/manifest.ts's `imageTargets` array
+       (see the guide §1) — NOT active by default in this template.
+    3. Whatever content you want anchored to it (the markup below).
+
+  IMPORTANT — this only works in the real AR preview, `npm run dev:ar` (or
+  the real host). `npm run dev` (the plain VR/desktop preview) never
+  configures XR8 at all, so image detection is completely inert there —
+  see IMAGE-TRACKING-FEATURE-GUIDE.md §3.
+
+  Read IMAGE-TRACKING-FEATURE-GUIDE.md §4 before combining a tappable
+  xrextras-play-video with the Sound feature or mirror-shard — both rely on
+  DIFFERENT tap-detection mechanisms than xrextras-play-video's own, with a
+  documented iOS click-suppression risk if combined with pinch/rotate
+  gestures.
+-->
+
+<!-- ============================================================
+     Example — plays/pauses a video, textured onto a plane, only
+     while the named target ("video-target") is detected in camera
+     view. thumb shows the target's own thumbnail image as a poster
+     frame before playback starts; canstop lets a tap on the already-
+     playing video stop it (not just pause).
+     ============================================================ -->
+<xrextras-named-image-target name="video-target">
+  <a-entity
+      scale="1 1 1"
+      xrextras-play-video="video: #jellyfish-video; thumb: #video-target; canstop: true"
+      geometry="primitive: plane; height: 1; width: 0.79;">
+  </a-entity>
+</xrextras-named-image-target>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+  Best-effort, from this project's own usage plus reading the vendored
+  source (node_modules/@8thwall/xrextras/dist/xrextras.js) — not authoritative
+  upstream documentation, since this is vendored code this project doesn't own.
+
+  xrextras-named-image-target
+    name       Must exactly match the `name` field inside your target's own
+               JSON file (src/image-targets/<name>.json) — this is how the
+               engine knows which detected target this wrapper cares about
+               (a scene can have several xrextras-named-image-target blocks,
+               one per registered target, each keyed by its own name). Its
+               children are shown/hidden and positioned to track that
+               target automatically — you don't drive position yourself.
+
+  xrextras-play-video
+    video      Selector for the <video> asset to play — reference a manifest
+               asset by id the same way gltf-model does (e.g. #jellyfish-video
+               for src/assets/jellyfish-video.mp4).
+    thumb      Selector for a poster-frame image shown before playback starts
+               — in this example, the target's own thumbnail image
+               (video-target_thumbnail.jpg, auto-injected as #video-target
+               alongside the target's other files — same auto-injection
+               asset-id-from-filename convention as src/assets/).
+    canstop    Presence/boolean. If true, tapping the video while it's
+               already playing stops it (not just pauses) — a second tap
+               restarts from the beginning rather than resuming.
+
+  Under the hood, xrextras-play-video listens for a plain `click` via the
+  host's shared cursor/raycaster system (elements classed `.cantap`) — a
+  DIFFERENT tap mechanism than this template's own ar-button/sound-button
+  (pointerdown/pointerup) or mirror-shard (also `click`, for the same
+  reason). See IMAGE-TRACKING-FEATURE-GUIDE.md §4 for the iOS click-
+  suppression risk this shares with mirror-shard if combined with pinch/
+  rotate gestures.
+-->

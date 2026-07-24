@@ -1,0 +1,84 @@
+<!--
+  UNLIT-MATERIAL — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when converting a loaded model's PBR materials to flat,
+  fully-lit MeshBasicMaterials (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/unlit-material.ts):
+    unlit-material   Put on ANY entity with a loaded model or primitive.
+                      Replaces every mesh's material with a flat
+                      MeshBasicMaterial — renders fully lit regardless of
+                      scene lighting.
+
+  This component is documented in full, including its "typical LOD
+  billboard" use case, under LOD-BILLBOARD-FEATURE-GUIDE.md §2 (it's a
+  shared building block, not owned by that feature — see
+  FEATURE-CATALOG.md's "Shared building blocks" table). This example file
+  instead shows it used STANDALONE, with no LOD/billboard involved at all —
+  e.g. a full unlit-shaded character/prop model that should always read as
+  flat/toon-shaded regardless of scene lighting.
+
+  For a fully working, real-asset version of Example 2 below, see
+  mesh-render-order-unlit-material-rosa-scene.html — same attributes,
+  combined with mesh-render-order on this project's own bundled character
+  model, actually loads and renders.
+-->
+
+<!-- ============================================================
+     Example 1 — the common LOD-billboard case (for comparison):
+     defaults are tuned for a small flat billboard plane that should
+     never cast or receive a shadow.
+     ============================================================ -->
+<a-entity class="lod-billboard" gltf-model="#PropBillboard" billboard unlit-material></a-entity>
+
+<!-- ============================================================
+     Example 2 — standalone full-model use, no LOD involved. The
+     source project's asset (a full character model, alphaMode: BLEND
+     materials throughout, verified directly against the glTF) also
+     carries A-Frame's built-in `shadow` component — the default
+     unlit-material behaviour (force castShadow/receiveShadow off)
+     would silently cancel that out, so `keepShadowBehavior` preserves
+     whatever the `shadow` component already set instead. `alphaTest`
+     forces a hard cutout on materials that were authored as real
+     alpha blending (alphaMode: BLEND, no meaningful alphaTest of
+     their own) — useful for discarding very-transparent fringes on
+     effects like flames, at the cost of a hard edge instead of a
+     soft blended one.
+     ============================================================ -->
+<a-entity
+    gltf-model="#Character"
+    unlit-material="alphaTest: 0.5; keepShadowBehavior: true"
+    scale="12 12 12"
+    position="0 0 -30"
+    shadow>
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+  (full reference also in LOD-BILLBOARD-FEATURE-GUIDE.md §2)
+
+  keepEmissive          boolean, default true. Folds any emissive glow into
+                         the flat colour so it survives flattening.
+  brightness             number, default 1. Uniform dim on the flat colour —
+                         the only way to dim an unlit material.
+  tint                   color, default "" (none). Multiplied into the flat
+                         colour.
+  alphaTest              number, default -1 ("don't override" — keep
+                         whatever alphaTest the original material had).
+                         >= 0 forces that cutout value on the converted
+                         material regardless of the original's own
+                         alphaTest/alphaMode. Useful for a material authored
+                         as alphaMode: BLEND that still wants a hard cutout
+                         once converted to unlit.
+  keepShadowBehavior     boolean, default false (matches the original
+                         LOD-billboard behaviour: force castShadow/
+                         receiveShadow off — correct for a flat glow-style
+                         surface). true leaves this mesh's shadow behaviour
+                         exactly as already set (e.g. by a `shadow`
+                         component on the same entity) instead of forcing
+                         both off — use for something like a full
+                         unlit-shaded character that should still ground
+                         itself with a cast shadow.
+-->

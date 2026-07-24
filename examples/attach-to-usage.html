@@ -1,0 +1,48 @@
+<!--
+  ATTACH-TO — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when making an entity follow another entity's world position,
+  even across DOM hierarchy (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/attach-to.ts):
+    attach-to   Put on ANY entity. Copies `target`'s world position (+
+                offset) onto this entity every tick. Position only —
+                rotation/scale untouched.
+
+  Writes object3D.position every tick with no awareness of anything else
+  doing the same — do NOT combine with wander-in-band or proximity-wave on
+  the SAME entity (whichever runs last simply overwrites the other, no
+  composition). See ATTACH-TO-FEATURE-GUIDE.md §4 for the fix (put them on
+  a parent/child pair instead).
+-->
+
+<!-- ============================================================
+     Example 1 — a light that tracks the host-provided shared
+     camera (id "camera", assigned by this template's own host/
+     preview setup) even though it's not a DOM child of it.
+     ============================================================ -->
+<a-entity
+    light="type: point; intensity: 1"
+    attach-to="target: #camera; offset: 0 1 0">
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — an entity tracking any other scene entity by id,
+     not just the camera.
+     ============================================================ -->
+<a-entity id="anchorPoint" position="0 2 -5"></a-entity>
+<a-entity gltf-model="#FollowerProp" attach-to="target: #anchorPoint; offset: 0.5 0 0"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  target   selector, required. The entity to follow. Resolved fresh on
+           every tick, not cached — works even if the target mounts AFTER
+           this entity does.
+
+  offset   vec3, default "0 0 0". Added to the target's world position, in
+           world-space units, before converting into this entity's own
+           parent space. "x y z" syntax, e.g. offset: "0 1 0".
+-->

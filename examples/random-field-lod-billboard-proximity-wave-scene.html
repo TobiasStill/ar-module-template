@@ -1,0 +1,181 @@
+<!--
+  RANDOM-FIELD + LOD/BILLBOARD + PROXIMITY-WAVE + RENDER-ORDER — recreating
+  Gyumin_module's original scene as closely as this system allows
+  ============================================================================
+  Not compiled or served by anything in this project — reference markup
+  combining all four features salvaged from Gyumin_module into one scene,
+  matching that source's own tuned attribute values wherever the concept
+  still exists. Read the four individual feature guides first — this file
+  is about how they compose, not what each attribute does on its own:
+    RANDOM-FIELD-FEATURE-GUIDE.md
+    LOD-BILLBOARD-FEATURE-GUIDE.md
+    PROXIMITY-WAVE-FEATURE-GUIDE.md
+    RENDER-ORDER-FEATURE-GUIDE.md
+
+  WHAT'S DIFFERENT FROM THE ORIGINAL, AND WHY:
+
+  - No .glb "lightstick" models. The original discovered and placed real
+    3D lightstick assets (PREFIX_01.../PREFIX_LICHT/PREFIX_PNG). This
+    template ships no artistic 3D content of its own (see
+    UNIVERSALIZING-FEATURES.md's rule on project-specific assets) — so this
+    recreation uses plain A-Frame primitives for the "3D object" side of
+    each LOD group, and plain <a-plane>s for the billboard side, instead.
+    Swap the primitives for your own gltf-model entities and nothing else
+    about this structure changes — see LOD-BILLBOARD-FEATURE-GUIDE.md's
+    "Required structure", which primitives satisfy exactly the same way a
+    .glb would (that guide's own generalization from `model-loaded` to
+    A-Frame's generic `object3dset` event is what makes this possible at
+    all — see RENDER-ORDER-FEATURE-GUIDE.md §3 for that finding).
+
+  - No LICHT or HaloSphere. Per instruction — those were never part of the
+    universalized features to begin with (see MIRROR-SHARD-FEATURE-GUIDE.md-
+    style exclusions in each of the four guides above), so there's nothing
+    to substitute for them; each prop below is just its own coloured body +
+    matching billboard, nothing else layered on top.
+
+  - Three prop "types" (cone / cylinder / box+sphere), each a distinct
+    primitive shape with its own colour — standing in for the original's
+    many differently-shaped, differently-coloured idol lightsticks. Each
+    billboard plane is coloured to MATCH its corresponding 3D object,
+    exactly as requested (in the original, the billboard was a baked
+    texture of the real model — here, since there's no texture, matching
+    flat colour is the equivalent stand-in).
+
+  - Placement, LOD, and wave attribute VALUES below are copied directly
+    from the original ArModule.vue's own <glowstick-field> tag where the
+    same concept still exists (areaWidth/elevation/minDistance/maxDistance/
+    yawMax/tiltMin/tiltMax/copies/minCopyDistance/scale, lodNear/lodFar →
+    nearDistance/farDistance, billboardBrightness → unlit-material's
+    brightness, waveNear/waveFar/waveIntensity/waveSpeed/wavePivotY/
+    idleRadius) — lichtNear/lichtFar had no equivalent to copy, since
+    there's no LICHT anymore.
+
+  - wavePivotY: -0.5 (the original's own value, unchanged) is why every
+    primitive below is exactly 1 unit tall and vertically centred on its
+    own entity origin (A-Frame's default primitive pivot) — half of that
+    height, negated, puts the wave's pivot right at the object's visual
+    base, so it reads as "swinging from where a hand would hold it" rather
+    than rotating around its own middle. If you use taller/shorter props,
+    scale pivotY the same way (roughly -height/2).
+
+  - Lighting is simplified to plain static lights, not the original's
+    camera/anchor-relative ones (built with `attach-to`, which isn't one of
+    the four requested features and isn't part of this port) — position
+    lights however suits your own scene.
+-->
+
+<a-entity light="type: ambient; intensity: 0.3; color: #cecdfa"></a-entity>
+<a-entity light="type: directional; intensity: 1; color: #88c9f7" position="2 6 2"></a-entity>
+
+<a-entity lod-manager="chunksPerCycle: 6">
+
+  <!-- ============================================================
+       Prop prototypes — one entity per "type", each with its own
+       colour, referenced by id below. Hidden automatically once
+       random-field clones them (see RANDOM-FIELD-FEATURE-GUIDE.md).
+       ============================================================ -->
+
+  <!-- Type 1 — a single-part cone prop, orange/red. -->
+  <a-entity id="propCone" lod-object="nearDistance: 6; farDistance: 8">
+    <a-entity class="lod-mesh-group">
+      <a-entity
+          class="lod-mesh"
+          geometry="primitive: cone; radiusBottom: 0.15; radiusTop: 0.02; height: 1"
+          material="color: #ff5f4a"
+          render-order="1">
+      </a-entity>
+    </a-entity>
+    <a-entity
+        class="lod-billboard"
+        geometry="primitive: plane; width: 0.3; height: 1"
+        material="color: #ff5f4a; side: double"
+        render-order="2"
+        billboard
+        unlit-material="brightness: 0.4">
+    </a-entity>
+  </a-entity>
+
+  <!-- Type 2 — a single-part cylinder prop, blue. -->
+  <a-entity id="propCylinder" lod-object="nearDistance: 6; farDistance: 8">
+    <a-entity class="lod-mesh-group">
+      <a-entity
+          class="lod-mesh"
+          geometry="primitive: cylinder; radius: 0.12; height: 1"
+          material="color: #4a90ff"
+          render-order="1">
+      </a-entity>
+    </a-entity>
+    <a-entity
+        class="lod-billboard"
+        geometry="primitive: plane; width: 0.24; height: 1"
+        material="color: #4a90ff; side: double"
+        render-order="2"
+        billboard
+        unlit-material="brightness: 0.4">
+    </a-entity>
+  </a-entity>
+
+  <!-- Type 3 — a TWO-part prop (a box "handle" + a sphere "tip"),
+       green, demonstrating the multi-part case: each part gets its
+       own render-order (handle drawn first, tip drawn on top of it). -->
+  <a-entity id="propBoxSphere" lod-object="nearDistance: 6; farDistance: 8">
+    <a-entity class="lod-mesh-group">
+      <a-entity
+          class="lod-mesh"
+          geometry="primitive: box; width: 0.2; depth: 0.2; height: 0.7"
+          material="color: #4aff8a"
+          position="0 -0.15 0"
+          render-order="1">
+      </a-entity>
+      <a-entity
+          class="lod-mesh"
+          geometry="primitive: sphere; radius: 0.18"
+          material="color: #4aff8a"
+          position="0 0.35 0"
+          render-order="2">
+      </a-entity>
+    </a-entity>
+    <a-entity
+        class="lod-billboard"
+        geometry="primitive: plane; width: 0.3; height: 1"
+        material="color: #4aff8a; side: double"
+        render-order="3"
+        billboard
+        unlit-material="brightness: 0.4">
+    </a-entity>
+  </a-entity>
+
+  <!-- ============================================================
+       The field itself: places clones of all three prop types
+       (shuffled together), each getting `copies` instances, with a
+       shared wave/idle motion applied to every placed clone via
+       proximity-wave-group on this SAME entity (see
+       PROXIMITY-WAVE-FEATURE-GUIDE.md for why that combination is
+       safe regardless of component init order).
+       ============================================================ -->
+  <a-entity
+      random-field="
+        items: #propCone, #propCylinder, #propBoxSphere;
+        areaWidth: 5;
+        elevation: 0.8;
+        elevationVariation: 0.2;
+        minDistance: 1.8;
+        maxDistance: 2.3;
+        yawMax: 2;
+        tiltMin: 0;
+        tiltMax: 12;
+        copies: 2;
+        minCopyDistance: 3.5;
+        scale: 1.1;
+      "
+      proximity-wave-group="
+        waveNear: 2;
+        waveFar: 5;
+        waveIntensity: 25;
+        waveSpeed: 4;
+        pivotY: -0.5;
+        idleRadius: 0.03;
+      ">
+  </a-entity>
+
+</a-entity>

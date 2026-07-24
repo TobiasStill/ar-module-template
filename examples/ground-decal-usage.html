@@ -1,0 +1,51 @@
+<!--
+  GROUND-DECAL — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when pinning a decal flat on the ground under a (possibly
+  tilted) parent entity (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/ground-decal.ts):
+    ground-decal   Put on a CHILD entity of whatever it should stay pinned
+                    under. Keeps this entity flat on the ground directly
+                    below the parent's pivot, regardless of the parent's
+                    own rotation, and excludes it from scene fog.
+
+  Requires a parent — this component reads object3D.parent and does
+  nothing without one. Don't combine with wander-in-band/proximity-wave/
+  attach-to on the same entity if live: true (all write position/rotation
+  every tick) — see GROUND-DECAL-FEATURE-GUIDE.md §4.
+-->
+
+<!-- ============================================================
+     Example 1 — a static parent: the default live: false applies
+     the flat-on-ground placement once and stops (cheapest option).
+     ============================================================ -->
+<a-entity gltf-model="#Statue" rotation="0 30 15" position="0 0 -5">
+  <a-entity gltf-model="#StatueShadowDecal" ground-decal="groundY: 0"></a-entity>
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — a parent that moves/rotates after placement (e.g.
+     driven by wander-in-band): live: true recomputes every frame so
+     the decal keeps tracking it.
+     ============================================================ -->
+<a-entity id="centerPoint" position="0 0 -10"></a-entity>
+<a-entity
+    gltf-model="#WanderingCreature"
+    wander-in-band="center: #centerPoint; innerRadius: 6; outerRadius: 12">
+  <a-entity gltf-model="#CreatureShadowDecal" ground-decal="groundY: 0; live: true"></a-entity>
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  groundY   number, default 0. World-space Y height of the ground plane the
+            decal sits on.
+
+  live       boolean, default false. false applies the flat-on-ground
+            placement once and stops — cheapest, correct for a static
+            parent. true recomputes every frame — needed only if the
+            parent itself moves/rotates after placement (see Example 2).
+-->

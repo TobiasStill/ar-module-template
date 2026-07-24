@@ -1,0 +1,51 @@
+<!--
+  PROXIMITY-CUTOUT — usage & wiring example
+  ============================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when wiring up a camera-proximity cutout in a scene (e.g. into
+  ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/proximity-cutout.ts):
+    proximity-cutout   Dithers away fragments within `radius` of the active
+                       camera, opening a hole around the camera as it
+                       approaches — lets the camera "cut into" a model
+                       instead of clipping through it or being blocked by
+                       it. Independent of proximity-fade/-dither (a
+                       different effect, a different feature) — see
+                       PROXIMITY-CUTOUT-FEATURE-GUIDE.md for how they can
+                       and can't be combined on the same models.
+
+  Put it on a transform entity that wraps one or more `gltf-model` children
+  — `model-loaded` bubbles up from each child, so one component instance
+  patches every descendant model's materials as they load. You do not need
+  one instance per model.
+-->
+
+<a-entity
+    id="building-shell"
+    position="0 0 -10"
+    proximity-cutout="radius: 2.5; feather: 0.3">
+  <a-entity gltf-model="#BuildingOuter1" position="0 0 0" shadow></a-entity>
+  <a-entity gltf-model="#BuildingOuter2" position="0 0 0" shadow></a-entity>
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  radius    number, default 12. Distance from the camera within which
+            fragments are cut away entirely.
+
+  feather   number, default 5. Width of the dithered transition band,
+            measured INWARD from `radius` (i.e. the cutout is fully open at
+            `radius - feather` and fully closed at `radius`, dithering
+            between). Keep 0 < feather <= radius — a feather of 0 or less,
+            or one wider than radius itself, isn't a supported configuration
+            and may not render sensibly (the underlying GLSL smoothstep
+            needs its low edge below its high edge).
+
+  Unlike proximity-fade, there's no `target` attribute — the cutout is
+  always centred on the camera itself, not a configurable point. There's
+  also no "fade-in" side to configure: a cutout is a single radius/feather
+  pair, not a pair of independent ramps.
+-->

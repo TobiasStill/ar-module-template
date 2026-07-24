@@ -30,8 +30,8 @@ const MIME: Record<string, string> = {
 interface ManifestAsset { id: string; src: string }
 
 /** Scan src/assets and derive a manifest entry per file. The file name (without
- *  extension) is used as the A-Frame asset id, e.g. `fish1.glb` → id `fish1`,
- *  served/hosted at `assets/fish1.glb`. */
+ *  extension) is used as the A-Frame asset id, e.g. `model.glb` → id `model`,
+ *  served/hosted at `assets/model.glb`. */
 function readAssets(): { entry: ManifestAsset; file: string }[] {
   if (!existsSync(ASSETS_SRC)) return [];
   return readdirSync(ASSETS_SRC)

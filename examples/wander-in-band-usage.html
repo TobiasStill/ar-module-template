@@ -1,0 +1,109 @@
+<!--
+  WANDER-IN-BAND — usage & wiring examples
+  ===========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when making entities orbit/wander around a center entity (e.g.
+  into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/wander-in-band.ts):
+    wander-in-band   Put on any entity. Makes it continuously orbit within
+                     an annulus ("band") around a center entity — a
+                     baseline circular orbit with a randomly-retargeted
+                     angular deviation layered on top (`chaos`), subtle Y
+                     floating, soft spiral-back at the band's inner/outer
+                     edges, and gentle mutual avoidance of any other
+                     `wander-in-band` entities sharing the same DOM parent.
+                     Only ever writes this entity's own `position` and
+                     `rotation.y` — anything parented under it (a model, a
+                     `sound` component) rides along for free.
+
+  This is a generic, feature-agnostic utility — not tied to any other
+  feature on this branch. Reads nothing shared (no document listeners, no
+  camera, no materials), so it's free to combine with anything, including
+  a raycast/tap system like [ar-button] if you want a wandering entity to
+  also be tappable.
+-->
+
+<a-entity id="centerPoint" position="0 0 -10"></a-entity>
+
+<!-- ============================================================
+     Example 1 — a single wanderer: calm, clean orbit (low chaos).
+     ============================================================ -->
+<a-entity
+    gltf-model="#MyCreature"
+    scale="2 2 2"
+    wander-in-band="center: #centerPoint; innerRadius: 6; outerRadius: 12; floatIntensity: 0.05; speed: 0.35; chaos: 0.15">
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — three wanderers sharing a parent, so they gently
+     avoid each other (the mutual-avoidance check only looks at
+     [wander-in-band] entities under the SAME parent element — put
+     wanderers that should be aware of each other under one wrapper
+     entity like this; separate wrappers wander independently with
+     no awareness of each other).
+     ============================================================ -->
+<a-entity id="wandererGroup">
+  <a-entity
+      gltf-model="#MyCreature"
+      wander-in-band="center: #centerPoint; innerRadius: 6; outerRadius: 12; speed: 0.35; chaos: 0.1"
+      sound="src: #clip1; autoplay: false; loop: true; positional: true; distanceModel: linear; refDistance: 3.5; rolloffFactor: 1; maxDistance: 8">
+  </a-entity>
+  <a-entity
+      gltf-model="#MyCreature"
+      wander-in-band="center: #centerPoint; innerRadius: 6; outerRadius: 12; speed: 0.4; chaos: 0.15"
+      sound="src: #clip2; autoplay: false; loop: true; positional: true; distanceModel: linear; refDistance: 3.5; rolloffFactor: 1; maxDistance: 8">
+  </a-entity>
+  <a-entity
+      gltf-model="#MyCreature"
+      wander-in-band="center: #centerPoint; innerRadius: 6; outerRadius: 12; speed: 0.3; chaos: 0.21"
+      sound="src: #clip3; autoplay: false; loop: true; positional: true; distanceModel: linear; refDistance: 3.5; rolloffFactor: 1; maxDistance: 8">
+  </a-entity>
+</a-entity>
+
+<!-- ============================================================
+     Example 3 — high chaos: sharp, unpredictable turns instead of
+     a clean circle, and a yawOffset for a model whose forward axis
+     isn't +Z (try 180 first if a model appears to walk backwards).
+     ============================================================ -->
+<a-entity
+    gltf-model="#MyCreature"
+    wander-in-band="center: #centerPoint; innerRadius: 4; outerRadius: 9; speed: 0.5; chaos: 0.9; yawOffset: 180">
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  center          selector, required. The entity the band is centered on.
+                  Without one resolving, this warns once to the console
+                  and the entity just stays put.
+
+  innerRadius     number, default 3. Band's inner edge, in metres from
+                  `center`.
+
+  outerRadius     number, default 7. Band's outer edge, in metres.
+
+  floatIntensity  number, default 0.15. Amplitude (metres) of a subtle
+                  up/down bob around the entity's own starting Y (its
+                  "ground" height at spawn).
+
+  speed           number, default 0.3. Orbit speed in metres/second.
+
+  chaos           number, default 0.5 (0-1). How much and how often the
+                  heading deviates from a clean orbit. Low chaos traces a
+                  steady circle; high chaos lets the entity turn sharply on
+                  itself and temporarily abandon the orbit before smoothly
+                  resuming.
+
+  yawOffset       number, default 0 (degrees). Added to the computed
+                  heading, for a model whose forward axis isn't local +Z —
+                  try 180 first if it appears to walk backwards.
+
+  Nothing to call — once `center` resolves, the entity starts wandering
+  immediately from a random spawn point inside the band (whatever static
+  `position`/`rotation` you authored in markup is only an initial pose;
+  this component owns the transform from init() onward). Two entities with
+  identical attribute values still wander independently — each seeds its
+  own random heading/timing/orbit-direction on init().
+-->

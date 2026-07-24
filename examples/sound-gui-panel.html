@@ -1,0 +1,188 @@
+<!--
+  SOUND GUI PANEL — copy/paste template
+  ======================================
+  This file is NOT compiled or served by anything in this project — it's
+  plain reference text (Vue SFC syntax, `.html` extension so it opens
+  readably anywhere) kept next to the components it wires up. It exists so a
+  project that inherits this template can add the 2D sound-control panel to
+  its OWN ArModule.vue without reconstructing it from scratch.
+
+  WHY THIS ISN'T ALREADY IN ArModule.vue ON THIS BRANCH:
+  Every project's ArModule.vue has its own <script setup> and <template>
+  with its own 3D scene content — pasting a whole file over it would destroy
+  that. Instead, copy the two pieces below into the EXISTING ArModule.vue by
+  hand:
+
+  1. SCRIPT — copy everything between the "COPY INTO <script setup>" markers
+     into your ArModule.vue's own <script setup lang="ts"> block (anywhere
+     after your existing imports is fine). Merge the `import { ... } from
+     'vue'` line with your own imports from 'vue' rather than duplicating it.
+
+  2. TEMPLATE — copy the <div> between the "COPY INTO <template>" markers
+     into your ArModule.vue's <template>, as a SIBLING of your root
+     <a-entity> — NOT nested inside it. This is a 2D screen-space overlay,
+     not part of the 3D scene. Vue 3 templates support multiple root nodes
+     (fragments), so ArModule.vue can have both your <a-entity> and this
+     <div> as top-level template children.
+
+  3. REQUIREMENTS on your module's root <a-entity>:
+       - a template ref matching the `rootEntity` ref used below, e.g.
+         `ref="rootEntity"`
+       - the `sound-controller` component (the play/pause/stop state
+         machine this panel talks to — see
+         src/a-frame-components/sound-controller.ts)
+     `sound-controller` only needs `ar-button-manager` on the same root if
+     you also want gaze/tap-driven 3D sound buttons (see
+     examples/ar-button-usage.html) — the 2D panel by itself only requires
+     `sound-controller`.
+
+     e.g.: <a-entity ref="rootEntity" sound-controller ar-button-manager>
+
+  4. ASSETS — this branch already ships the four icon files this panel needs
+     in src/assets/: sound-start.webp, sound-stop.webp, sound-play.webp,
+     sound-pause.webp (any image extension works; the asset id is the file
+     name without its extension, e.g. sound-start.webp -> #sound-start,
+     auto-injected into <a-assets> by the host). Just copy these four files
+     into your project's own src/assets/ alongside your other assets — the
+     `sound-` prefix is this template's naming convention for keeping one
+     feature's files identifiable in a flat, shared folder (see the comment
+     in src/manifest.ts); it doesn't need a subfolder or any path change.
+     Change the ids passed to iconSrc() below only if you rename the icons.
+
+  See examples/ar-button-usage.html for wiring up the 3D buttons themselves.
+-->
+
+<!-- ============ COPY INTO <script setup> — START ============ -->
+<script setup lang="ts">
+// Merge with your ArModule.vue's own imports from 'vue' — don't duplicate
+// the import statement if computed/onMounted/onUnmounted/ref are already
+// imported there.
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+
+// 2D sound-control GUI (start/stop/play-pause). It lives outside the A-Frame
+// scene graph entirely, so it can't read sound-controller's state directly —
+// the controller emits "sound-state-changed" on the root entity (see
+// notifyStateChange() in sound-controller.ts) and this listens for it.
+type SoundStatus = "idle" | "playing" | "paused";
+
+const rootEntity = ref<HTMLElement | null>(null);
+const soundStatus = ref<SoundStatus>("idle");
+
+function onSoundStateChanged(e: Event) {
+  soundStatus.value = (e as CustomEvent).detail.status;
+}
+
+function getController(): any {
+  return (rootEntity.value as any)?.components?.["sound-controller"];
+}
+
+function onStart() {
+  getController()?.restartActive();
+}
+
+function onStop() {
+  getController()?.stopActive();
+}
+
+function onPlayPause() {
+  getController()?.togglePlayPause();
+}
+
+// The four control icons are plain image files in src/assets/, auto-injected
+// as <img id="..."> into <a-assets> by the host before this module mounts —
+// reuse that already-resolved URL rather than guessing the host's asset base
+// path ourselves.
+function iconSrc(id: string): string {
+  return (document.getElementById(id) as HTMLImageElement | null)?.src ?? "";
+}
+
+// Inline styles, not a <style> block: the library build extracts SFC styles
+// into a CSS file the host never loads — an ArModule only ships as JS.
+// Inline styles compile into the render function itself, so they work in
+// the real host, not just local previews. The panel stays mounted at all
+// times and fades via a bound `opacity` + `transition` — no v-if, so the
+// CSS transition has something to animate between.
+const panelVisible = computed(() => soundStatus.value !== "idle");
+
+const panelStyle = computed(() => ({
+  position: "fixed",
+  left: "50%",
+  bottom: "10%",
+  transform: "translateX(-50%)",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "6%",
+  maxWidth: "66%",
+  zIndex: 1000,
+  opacity: panelVisible.value ? 1 : 0,
+  pointerEvents: panelVisible.value ? "auto" : "none",
+  transition: "opacity 0.35s ease"
+} as const));
+
+const buttonStyle = {
+  flex: "0 0 auto",
+  margin: 0,
+  padding: 0,
+  border: "none",
+  background: "none",
+  cursor: "pointer"
+} as const;
+
+// White square behind each icon — assumes the icon PNGs/WebPs have real
+// alpha transparency rather than a baked-in opaque background. Drop this
+// (and squareStyle below) if your icons already have one.
+const squareStyle = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  width: "16vw",
+  height: "16vw",
+  maxWidth: "64px",
+  maxHeight: "64px",
+  background: "#ffffff",
+  boxShadow: "0 2px 10px rgba(0, 0, 0, 0.35)"
+} as const;
+
+const iconStyle = {
+  display: "block",
+  width: "70%",
+  height: "70%",
+  objectFit: "contain"
+} as const;
+
+onMounted(() => {
+  rootEntity.value?.addEventListener("sound-state-changed", onSoundStateChanged);
+});
+
+onUnmounted(() => {
+  rootEntity.value?.removeEventListener("sound-state-changed", onSoundStateChanged);
+});
+</script>
+<!-- ============ COPY INTO <script setup> — END ============ -->
+
+<!-- ============ COPY INTO <template> — START ============ -->
+<!-- 2D sound-control GUI — screen-space overlay, NOT part of the 3D scene.
+     Always mounted (so the opacity transition has something to animate
+     between); visible only while a sound is playing or paused, fading out
+     again once back to idle. Order: restart-from-start, stop, play/pause
+     toggle. @click.stop keeps a panel tap from also bubbling out to any
+     other document-level click handling your scene may add. -->
+<div :style="panelStyle">
+  <button :style="buttonStyle" type="button" aria-label="Restart from beginning" @click.stop="onStart">
+    <span :style="squareStyle"><img :style="iconStyle" :src="iconSrc('sound-start')" alt="" /></span>
+  </button>
+  <button :style="buttonStyle" type="button" aria-label="Stop" @click.stop="onStop">
+    <span :style="squareStyle"><img :style="iconStyle" :src="iconSrc('sound-stop')" alt="" /></span>
+  </button>
+  <button
+      :style="buttonStyle"
+      type="button"
+      :aria-label="soundStatus === 'playing' ? 'Pause' : 'Play'"
+      @click.stop="onPlayPause">
+    <span :style="squareStyle">
+      <img :style="iconStyle" :src="iconSrc(soundStatus === 'playing' ? 'sound-pause' : 'sound-play')" alt="" />
+    </span>
+  </button>
+</div>
+<!-- ============ COPY INTO <template> — END ============ -->

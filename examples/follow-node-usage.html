@@ -1,0 +1,62 @@
+<!--
+  FOLLOW-NODE — usage & wiring examples
+  ========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when attaching something to a specific animated part of a glTF
+  model (e.g. into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/follow-node.ts):
+    follow-node   Put on any entity. Makes that entity's position
+                  continuously track a named node (mesh, empty, or bone,
+                  as authored in Blender/your DCC tool) inside another
+                  entity's loaded glTF — e.g. a bone, or a mesh moved by a
+                  shapekey-driven animation. Useful for attaching an
+                  A-Frame-level thing (a `sound` component, a light, a
+                  marker) to a specific moving part of an animated model,
+                  rather than that model's overall (static) entity
+                  transform.
+
+  This is a generic, feature-agnostic utility — not tied to any other
+  feature on this branch. It only ever writes its own entity's `position`,
+  reads nothing shared (no document listeners, no camera, no materials), so
+  it's free to combine with anything.
+-->
+
+<!-- The animated model. Any component that drives its own internal glTF
+     animation works here — this example just shows the model itself; pick
+     your own animation-driving approach (this template doesn't currently
+     bundle one). -->
+<a-entity
+    id="mainCharacter"
+    gltf-model="#MyAnimatedCharacter"
+    scale="2 2 2"
+    position="0 0 -10">
+</a-entity>
+
+<!-- Tracks the "shapekey_object" node inside MyAnimatedCharacter's glTF —
+     e.g. a mesh a shapekey-driven animation moves around — and carries a
+     positional sound source there instead of at the model's own static
+     root transform. Any entity/component can go here, not just `sound`. -->
+<a-entity
+    follow-node="target: #mainCharacter; node: shapekey_object"
+    sound="src: #myClip; autoplay: false; loop: true; positional: true; volume: 1; distanceModel: exponential; refDistance: 1.5; rolloffFactor: 1; maxDistance: 20">
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  target   selector, required. The entity whose loaded glTF contains the
+           node to track.
+
+  node     string, required. The node's name (THREE.Object3D#name) within
+           that glTF — a mesh, empty, or bone name exactly as authored in
+           Blender (or whatever DCC tool produced the model).
+
+  Nothing to call or listen for — once both attributes are set, this
+  entity's `position` updates every frame automatically. If `node` doesn't
+  match anything on the target's model, this warns once to the console
+  (`[follow-node] node "..." not found on target's model.`) and simply
+  never moves the entity — not a crash, easy to miss if you're not
+  watching the console.
+-->

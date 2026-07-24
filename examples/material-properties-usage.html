@@ -1,0 +1,87 @@
+<!--
+  MATERIAL-PROPERTIES — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when manually tuning a loaded model's PBR material properties
+  (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/material-properties.ts):
+    material-properties   Put on ANY entity with a loaded model or
+                           primitive. Tunes roughness/metalness/opacity and
+                           emissive intensity/tint directly on whatever
+                           material is already there — unlike unlit-material,
+                           it does NOT replace the material.
+
+  Do NOT combine with unlit-material on the same entity — see
+  MATERIAL-PROPERTIES-FEATURE-GUIDE.md §4: unlit-material replaces the
+  material outright (MeshBasicMaterial has no roughness/metalness/emissive
+  at all), so whichever component's object3dset listener fires first wins
+  and the other silently no-ops.
+-->
+
+<!-- ============================================================
+     Example 1 — make an ordinary shadow-casting statue shinier and
+     more metallic without touching its shadow behaviour at all
+     (disableShadow defaults to false — this keeps casting/receiving
+     shadows exactly as authored).
+     ============================================================ -->
+<a-entity
+    gltf-model="#Statue"
+    material-properties="metalness: 1; roughness: 0.1"
+    position="-2 0 0"
+    shadow>
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — force a model translucent. opacity < 1 also forces
+     material.transparent = true automatically (opacity alone does
+     nothing visually otherwise).
+     ============================================================ -->
+<a-entity gltf-model="#Glass" material-properties="opacity: 0.4" position="0 0 0"></a-entity>
+
+<!-- ============================================================
+     Example 3 — a glowing part: boost its emissive intensity, tint
+     it, and (unlike Examples 1/2) explicitly opt into disableShadow
+     since a light-emitting part usually shouldn't cast a shadow of
+     its own light.
+     ============================================================ -->
+<a-entity
+    gltf-model="#GlowOrb"
+    material-properties="emissiveIntensity: 2; emissiveTint: #ff2d55; disableShadow: true"
+    position="2 0 0">
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  roughness            number, default -1 ("don't override"). >= 0 forces
+                        material.roughness on every mesh that has one.
+
+  metalness             number, default -1 ("don't override"). Same as
+                        roughness, for material.metalness.
+
+  opacity                number, default -1 ("don't override"). >= 0 forces
+                        material.opacity; if the result is < 1, also forces
+                        material.transparent = true.
+
+  emissiveIntensity      number, default 1. Multiplier on top of the
+                        RESOLVED emissive intensity (the glTF-authored
+                        value, or the KHR_materials_emissive_strength
+                        extension's boosted value when present and this
+                        project's bundled three.js doesn't natively apply
+                        it — see the feature guide §3). 1 = no change.
+
+  emissiveTint            color, default "" (none). Multiplied into the
+                        emissive colour.
+
+  disableShadow           boolean, default false. Forces castShadow/
+                        receiveShadow off — opt in for a glow-style part
+                        that shouldn't cast/receive shadows of its own
+                        light; leaves shadow behaviour untouched by
+                        default, unlike the source this was ported from.
+
+  All attributes are reactive: changing any of them at runtime (e.g.
+  el.setAttribute('material-properties', 'opacity: 1')) re-applies
+  immediately without needing a reload.
+-->

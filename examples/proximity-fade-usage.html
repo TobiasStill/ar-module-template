@@ -1,0 +1,141 @@
+<!--
+  PROXIMITY-FADE / PROXIMITY-FADE-DITHER — usage & wiring examples
+  ====================================================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when wiring up camera-proximity opacity fades in a scene (e.g.
+  into ArModule.vue's <template>).
+
+  Components involved (src/a-frame-components/):
+    proximity-fade-shared   NOT an A-Frame component — the shared factory
+                            (createProximityFadeComponent) both variants
+                            below are built from: schema, the fade-in/
+                            fade-out ramp math, and the target/distance
+                            tracking. Not registered in manifest.ts.
+    proximity-fade           Real alpha-blended transparency. Put on a
+                            transform entity wrapping one or more
+                            gltf-model children.
+    proximity-fade-dither     Same attributes, same computed opacity —
+                            renders it by discarding fragments in a
+                            dithered pattern in the OPAQUE render pass
+                            instead of alpha blending. Use this one instead
+                            of proximity-fade wherever the faded object
+                            overlaps OTHER transparent materials in the
+                            scene (real alpha blending is order-dependent
+                            and will show sorting artefacts there; dithering
+                            composites correctly regardless, at the cost of
+                            a visible dot pattern during the transition).
+
+  Put whichever variant you want on a transform entity that wraps one or
+  more `gltf-model` children — `model-loaded` bubbles up from each child, so
+  one component instance patches every descendant model's materials as they
+  load. You do not need one instance per model.
+-->
+
+<a-entity id="scene-content" position="0 0 -10">
+
+  <!-- ============================================================
+       Example 1 — fade-in only. Invisible until the camera is within
+       6m of `target`, fully visible by 4m. Leaving fadeOutStart/
+       fadeOutEnd at their default (0/0) makes fade-out a no-op — the
+       object just stays fully opaque once faded in, forever.
+       ============================================================ -->
+  <a-entity
+      id="appears-on-approach"
+      proximity-fade="fadeInStart: 6; fadeInEnd: 4">
+    <a-entity gltf-model="#SomeModel" position="0 0 0" shadow></a-entity>
+  </a-entity>
+
+  <!-- ============================================================
+       Example 2 — fade-out only. Fully visible until the camera is
+       within 14m, fully invisible by 11m (e.g. an object you want to
+       vanish as the visitor walks past/through it). fadeInStart/
+       fadeInEnd stay at their default no-op.
+       ============================================================ -->
+  <a-entity
+      id="vanishes-up-close"
+      proximity-fade="fadeOutStart: 14; fadeOutEnd: 11">
+    <a-entity gltf-model="#SomeOtherModel" position="0 0 0" shadow></a-entity>
+  </a-entity>
+
+  <!-- ============================================================
+       Example 3 — both at once: a single appear-then-disappear
+       "window". Invisible beyond 12m, fully visible 9m-7m (the
+       plateau — fade-in's near anchor, 9, is at or beyond fade-out's
+       far anchor, 7, so there IS a full-opacity plateau; see the
+       attribute reference below for what happens if that's not true),
+       invisible again inside 4m. Uses the dithered variant because
+       (per this hypothetical scene) it overlaps another transparent
+       object.
+       ============================================================ -->
+  <a-entity
+      id="window-effect"
+      proximity-fade-dither="fadeInStart: 12; fadeInEnd: 9; fadeOutStart: 7; fadeOutEnd: 4">
+    <a-entity gltf-model="#GridPanel1" position="0 0 0" shadow></a-entity>
+  </a-entity>
+
+  <!-- ============================================================
+       Example 4 — custom target point. `target` is a LOCAL offset
+       from this entity's own pivot (like a child entity's `position`
+       would be), converted to world space every frame — so distance
+       is measured from that offset point, not this entity's own
+       origin, regardless of how this entity itself is placed/rotated.
+       Useful when the thing that should trigger the fade isn't at the
+       wrapper entity's own transform origin (e.g. a door's handle,
+       off to one side of the wrapper that contains the whole door).
+       ============================================================ -->
+  <a-entity
+      id="offset-target-example"
+      position="0 0 0" rotation="0 30 0"
+      proximity-fade-dither="fadeInStart: 12; fadeInEnd: 9; fadeOutStart: 7; fadeOutEnd: 4; target: -1 0 -0.3">
+    <a-entity gltf-model="#GridPanel2" position="0 0 0" shadow></a-entity>
+  </a-entity>
+
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE (identical schema on both proximity-fade and
+  proximity-fade-dither — they only differ in HOW the computed opacity is
+  rendered, not in what attributes they take or how those attributes behave)
+  ====================================================================
+
+  fadeInStart / fadeInEnd    number, both default 0. Two distances from the
+                             camera (to `target`), IN EITHER ORDER — whichever
+                             of the two is farther is where the object is
+                             fully transparent, whichever is nearer is where
+                             it's fully opaque. You do not need to know or
+                             remember which one to put the larger number in;
+                             set the values, not their order. Left at the
+                             0/0 default, fade-in is a no-op (object always
+                             opaque with respect to this ramp) — leave it
+                             alone if you only want fade-out.
+
+  fadeOutStart / fadeOutEnd  number, both default 0. Same order-independence.
+                             Whichever of the two is farther is where the
+                             object is fully opaque, whichever is nearer
+                             (closer to `target`) is where it's fully
+                             transparent again. Left at 0/0, fade-out is a
+                             no-op — leave it alone if you only want fade-in.
+
+  target                     vec3 "x y z", default "0 0 0". A LOCAL offset
+                             from this entity's own pivot/origin (converted
+                             to world space every frame), i.e. the point
+                             distance is actually measured from. The default
+                             is just this entity's own origin.
+
+  Using both fadeIn and fadeOut together models ONE appear-then-disappear
+  window as the camera approaches `target` — not a repeating or reversible
+  effect. The two ramps multiply together:
+    - Between fade-in's near anchor and fade-out's far anchor, both ramps
+      read 1 and the object is simply fully opaque (the "plateau") — this
+      exists as long as fade-in's near anchor is at or beyond fade-out's far
+      anchor.
+    - If instead fade-in's near anchor is CLOSER than fade-out's far anchor,
+      there's a gap where neither ramp reaches 1 — the object dips to some
+      opacity below full and back down again, never reaching fully opaque.
+      This is a smooth, single dip (not a glitch/flicker) — see
+      PROXIMITY-FADE-FEATURE-GUIDE.md for the underlying math and why
+      overlapping/nested/reversed ranges can never produce a discontinuity.
+  Only need one direction? Leave the other ramp at its 0/0 default rather
+  than trying to set matching values — 0/0 is a true no-op, not just "wide
+  open," so it never interferes with the ramp you actually want.
+-->

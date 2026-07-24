@@ -1,0 +1,79 @@
+<!--
+  PROXIMITY-WAVE — usage & wiring examples
+  ===========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when adding proximity-triggered waving/idle motion (e.g. into
+  ArModule.vue's <template>).
+
+  Components involved (src/a-frame-components/):
+    proximity-wave         Put on a SINGLE entity for its own independent
+                           wave/idle motion, with its own full parameter set.
+    proximity-wave-group   Put on a PARENT entity to apply one shared
+                           parameter set to every one of its direct
+                           children at once — including children created
+                           dynamically by [random-field] on the same entity
+                           (see examples/random-field-usage.html). A child
+                           that already has its own proximity-wave attribute
+                           is left alone, so group defaults and per-child
+                           overrides can coexist.
+-->
+
+<!-- ============================================================
+     Example 1 — a single standalone entity, its own parameters.
+     ============================================================ -->
+<a-entity
+    gltf-model="#MyProp"
+    proximity-wave="waveNear: 2; waveFar: 5; waveIntensity: 20; waveSpeed: 3; pivotY: -0.5; idleRadius: 0.03">
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — a plain hand-authored group: every child gets the
+     SAME wave/idle parameters from one place.
+     ============================================================ -->
+<a-entity proximity-wave-group="waveNear: 2; waveFar: 5; waveIntensity: 15; idleRadius: 0.02">
+  <a-entity gltf-model="#PropA" position="-2 0 -5"></a-entity>
+  <a-entity gltf-model="#PropB" position="0 0 -5"></a-entity>
+  <!-- This one opts out of the group's shared settings with its own values —
+       proximity-wave-group leaves any child that already has its own
+       proximity-wave attribute alone. -->
+  <a-entity gltf-model="#PropC" position="2 0 -5" proximity-wave="waveIntensity: 40; idleRadius: 0"></a-entity>
+</a-entity>
+
+<!-- ============================================================
+     Example 3 — combined with random-field: one shared wave/idle
+     config applied to every placed copy, no matter how many.
+     ============================================================ -->
+<a-entity id="propD" gltf-model="#MyOtherProp"></a-entity>
+
+<a-entity
+    random-field="items: #propD; areaWidth: 15; minDistance: 2.5; maxDistance: 6; copies: 6"
+    proximity-wave-group="waveNear: 2; waveFar: 5; waveIntensity: 25; waveSpeed: 4; idleRadius: 0.03">
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE (identical schema on both components — proximity-wave
+  applies it to itself; proximity-wave-group applies the same set to every
+  qualifying direct child)
+  ====================================================================
+
+  waveNear        number, default 2 (metres). ≤ this camera distance ⇒
+                   full-strength wave.
+  waveFar         number, default 5 (metres). ≥ this camera distance ⇒ no
+                   wave at all — smoothly ramped between the two.
+  waveIntensity   number, default 20 (degrees). Peak swing each way at full
+                   strength.
+  waveSpeed       number, default 3. Swing rate — higher is faster.
+  pivotY          number, default 0 (local units, along the entity's own
+                   axis). Where the wave pivots from — 0 = the entity's own
+                   origin; negative lowers it (e.g. toward a "base" the
+                   object should swing from rather than its centre).
+  idleRadius      number, default 0.02 (local units). Amplitude of a
+                   subtle, always-on float in every direction, independent
+                   per axis. 0 disables the idle motion entirely.
+
+  The wave swings along the azimuth the entity already leans toward (read
+  from its own authored X/Z rotation at init) — an upright entity (no
+  tilt) nods straight forward/back by default. Every instance seeds its own
+  random phase, so a group never waves/floats in unison even with
+  identical parameters.
+-->

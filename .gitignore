@@ -4,3 +4,11 @@ dist-platform/
 dist-ar/
 *.log
 .DS_Store
+
+# IDE / editor config
+.idea/
+
+# Pristine, uncompressed originals preserved by scripts/compress-assets.ts —
+# local-only, never shipped, never scanned by the Vite build (see
+# cross-feature-reference-docs/ASSET-COMPRESSION-GUIDE.md).
+uncompressed-assets/

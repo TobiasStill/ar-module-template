@@ -1,0 +1,188 @@
+<!--
+  SOUND UNLOCK OVERLAY — copy/paste template
+  =============================================
+  This file is NOT compiled or served by anything in this project — it's
+  plain reference text (Vue SFC syntax, `.html` extension so it opens
+  readably anywhere) kept next to the Sound feature it extends. It exists
+  for a project that has AMBIENT/AUTOPLAYING sound — e.g. an
+  `<a-entity sound="src: #ambientClip; autoplay: true; loop: true">`
+  somewhere in the scene, with no 3D button or 2D panel button the visitor
+  would tap first — rather than the tap-driven single-active-sound model
+  the rest of `guides/SOUND-FEATURE-GUIDE.md` covers.
+
+  WHY THIS IS NEEDED AT ALL: mobile browsers refuse to start/resume the Web
+  Audio context except from inside a real user gesture. An ambient sound
+  set to `autoplay: true` sits scheduled-but-silent until *something* on
+  the page counts as that gesture. If the visitor's very first tap is
+  already spent starting the AR session itself, that's often enough on its
+  own — but there's no guarantee of it, so this shows a small, dismissible
+  "tap to enable sound" prompt if nothing has unlocked audio within a short
+  delay, and disappears for the rest of the session the moment it's
+  confirmed unlocked (by this overlay, or by any other earlier gesture —
+  it doesn't need to be tapped itself).
+
+  This is DECOUPLED from any specific sound entity or from `sound-button`/
+  `sound-controller` — it only unlocks the shared Web Audio context via the
+  same `sound-unlock-audio.ts` helper those already use (see
+  `guides/SOUND-FEATURE-GUIDE.md` §3). Wiring up what actually plays once
+  unlocked (one ambient clip, several, a soundscape, whatever) is entirely
+  up to the project — this piece doesn't know or care.
+
+  WHY THIS ISN'T ALREADY IN ArModule.vue ON THIS BRANCH: same reasoning as
+  `sound-gui-panel.html` — every project's ArModule.vue has its own
+  `<script setup>` and `<template>` with its own scene content; pasting a
+  whole file over it would destroy that. Instead, copy the two pieces below
+  into the EXISTING ArModule.vue by hand:
+
+  1. SCRIPT — copy everything between the "COPY INTO <script setup>"
+     markers into your ArModule.vue's own `<script setup lang="ts">` block
+     (anywhere after your existing imports is fine). Merge the
+     `import { onMounted, onUnmounted, computed, ref } from 'vue'` line with
+     your own imports from 'vue' rather than duplicating it. Also copy
+     `src/a-frame-components/sound-unlock-audio.ts` into your project if you
+     haven't already (see `guides/SOUND-FEATURE-GUIDE.md` step 1) — this
+     reuses that file directly, it isn't duplicated here.
+
+  2. TEMPLATE — copy the `<div>` between the "COPY INTO <template>" markers
+     into your ArModule.vue's `<template>`, as a SIBLING of your root
+     `<a-entity>` — NOT nested inside it. This is a 2D screen-space overlay,
+     not part of the 3D scene. Vue 3 templates support multiple root nodes
+     (fragments), so ArModule.vue can have your `<a-entity>`, this overlay's
+     `<div>`, and (if also present) `sound-gui-panel.html`'s own `<div>` all
+     as top-level template siblings.
+
+  3. NO REQUIREMENTS on your module's root `<a-entity>` — unlike
+     `sound-gui-panel.html`, this doesn't read `sound-controller` state or
+     need a `ref`. It only touches the page-wide `document`/`AudioContext`,
+     independent of any one entity.
+
+  4. Positioned near the TOP of the screen (`top: 16px`), not bottom-center
+     like `sound-gui-panel.html`'s panel — deliberately, so the two don't
+     visually overlap if a project uses both features together. If you
+     reposition either, check for overlap yourself.
+
+  Example ambient sound entity this overlay is meant to accompany (plain
+  A-Frame markup, not part of the copy/paste blocks below — put it wherever
+  makes sense in your own 3D scene):
+
+    <a-entity sound="src: #ambientClip; autoplay: true; loop: true; volume: 0.6"></a-entity>
+
+  See `guides/SOUND-FEATURE-GUIDE.md` §2/§3 for the full design rationale,
+  including why the unlock listener runs in the capture phase and why the
+  overlay is safe to combine with `ar-button-manager`'s own tap detection.
+-->
+
+<!-- ============ COPY INTO <script setup> — START ============ -->
+<script setup lang="ts">
+// Merge with your ArModule.vue's own imports from 'vue' — don't duplicate
+// the import statement if computed/onMounted/onUnmounted/ref are already
+// imported there.
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { unlockAudio } from './a-frame-components/sound-unlock-audio';
+
+// A-Frame exposes three.js as a global (set by aframe.min.js) — same
+// pattern as every a-frame-components/*.ts file that reads THREE directly.
+declare const THREE: any;
+
+// How long to wait, after mount, before showing the overlay at all — gives
+// an earlier incidental gesture (e.g. the tap that starts the AR session)
+// a chance to unlock audio first, so the overlay only appears when it's
+// actually needed. Fanyu_module's own original value.
+const UNLOCK_OVERLAY_DELAY_MS = 1500;
+
+const audioUnlocked = ref(false);
+const showUnlockOverlay = ref(false);
+let unlockOverlayTimer: ReturnType<typeof setTimeout> | null = null;
+
+// Only marks `audioUnlocked` once resume is *confirmed* (ctx.state ===
+// "running"), not merely attempted — calling resume() outside a real user
+// gesture can silently fail to actually resume, and marking unlocked (or
+// tearing down the listeners) regardless would strand the page with sound
+// permanently stuck silent with no further chance to retry.
+function attemptUnlock() {
+  if (audioUnlocked.value) return;
+  unlockAudio(); // resumes the shared context + the iOS Ring/Silent-switch workaround
+  const ctx = THREE.AudioContext.getContext();
+  if (ctx.state === 'running') {
+    confirmUnlocked();
+    return;
+  }
+  ctx.resume().then(() => {
+    if (ctx.state === 'running') confirmUnlocked();
+  });
+}
+
+function confirmUnlocked() {
+  if (audioUnlocked.value) return;
+  audioUnlocked.value = true;
+  showUnlockOverlay.value = false;
+  if (unlockOverlayTimer) {
+    clearTimeout(unlockOverlayTimer);
+    unlockOverlayTimer = null;
+  }
+  document.removeEventListener('pointerdown', attemptUnlock, true);
+  document.removeEventListener('keydown', attemptUnlock, true);
+}
+
+const unlockOverlayVisible = computed(() => showUnlockOverlay.value && !audioUnlocked.value);
+
+const unlockOverlayStyle = computed(() => ({
+  position: 'fixed',
+  left: '50%',
+  top: '16px',
+  transform: 'translateX(-50%)',
+  background: 'rgba(15, 23, 42, 0.85)',
+  color: '#fff',
+  padding: '10px 20px',
+  borderRadius: '999px',
+  fontFamily: 'sans-serif',
+  fontSize: '14px',
+  zIndex: 1000,
+  cursor: 'pointer',
+  opacity: unlockOverlayVisible.value ? 1 : 0,
+  pointerEvents: unlockOverlayVisible.value ? 'auto' : 'none',
+  transition: 'opacity 0.35s ease'
+} as const));
+
+onMounted(() => {
+  // Capture phase, not bubble — catches a gesture as early as possible,
+  // before anything else in the tree (e.g. a 2D overlay's own
+  // `@click.stop`) has a chance to stop it from propagating further. Any
+  // gesture anywhere on the page counts, not just a tap on this overlay
+  // itself — the overlay is a fallback prompt, not the only way to unlock.
+  document.addEventListener('pointerdown', attemptUnlock, true);
+  document.addEventListener('keydown', attemptUnlock, true);
+  // In case the context is already running (e.g. a prior gesture elsewhere
+  // on the page — or another module's own sound feature — already
+  // unlocked it; the Web Audio context is a page-wide singleton, see
+  // guides/SOUND-FEATURE-GUIDE.md §4) — avoids waiting for a second gesture.
+  attemptUnlock();
+  unlockOverlayTimer = setTimeout(() => {
+    if (!audioUnlocked.value) showUnlockOverlay.value = true;
+  }, UNLOCK_OVERLAY_DELAY_MS);
+});
+
+onUnmounted(() => {
+  if (unlockOverlayTimer) clearTimeout(unlockOverlayTimer);
+  document.removeEventListener('pointerdown', attemptUnlock, true);
+  document.removeEventListener('keydown', attemptUnlock, true);
+});
+</script>
+<!-- ============ COPY INTO <script setup> — END ============ -->
+
+<!-- ============ COPY INTO <template> — START ============ -->
+<!-- 2D "tap to enable sound" prompt — screen-space overlay, NOT part of the
+     3D scene. Always mounted (so the opacity transition has something to
+     animate between); invisible until the delay elapses with audio still
+     locked, then fades in; fades out and stays gone for the rest of the
+     session the moment audio is confirmed unlocked (by this overlay, or by
+     any other gesture). @pointerdown.stop keeps a tap on this overlay from
+     also bubbling out to ar-button-manager's own document-level tap
+     detection — belt-and-suspenders: ar-button-manager already only counts
+     a tap that lands on the AR <canvas> itself, so this isn't strictly
+     required, but matches sound-gui-panel.html's own defensive
+     convention. -->
+<div :style="unlockOverlayStyle" @pointerdown.stop="attemptUnlock">
+  🔊 Tap to enable sound
+</div>
+<!-- ============ COPY INTO <template> — END ============ -->

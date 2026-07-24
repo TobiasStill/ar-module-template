@@ -1,0 +1,85 @@
+<!--
+  MESH-RENDER-ORDER — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from when controlling draw order among a single asset's own named
+  sub-meshes (e.g. into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/mesh-render-order.ts):
+    mesh-render-order   Put on an entity carrying a gltf-model whose named
+                         sub-meshes need ordering RELATIVE TO EACH OTHER.
+                         One string attribute, semicolon-separated
+                         "MeshName: number" pairs — not a multi-property
+                         schema. Higher draws later (on top of) lower,
+                         within the same render queue.
+
+  Different from render-order (see RENDER-ORDER-FEATURE-GUIDE.md), which
+  sets ONE value across a WHOLE model, for ordering it against OTHER
+  objects. Use mesh-render-order when one asset's own internal parts
+  overlap each other; use render-order when whole objects overlap each
+  other. Read RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md before reaching for
+  either on anything transparent.
+
+  Do NOT combine mesh-render-order with [lod-object] on the same entity —
+  see MESH-RENDER-ORDER-FEATURE-GUIDE.md §4: lod-manager overwrites every
+  mesh in a .lod-mesh child with ONE shared renderOrder value every frame,
+  silently erasing any per-name distinction set here.
+
+  For a fully working, real-asset version of Example 1 below (not just a
+  placeholder id), see mesh-render-order-unlit-material-rosa-scene.html —
+  same mesh names, same bundled .glb, actually loads and renders.
+-->
+
+<!-- ============================================================
+     Example 1 — a multi-layered model whose overlapping translucent
+     parts (e.g. several flame/glow meshes plus a solid body) need a
+     fixed draw order relative to EACH OTHER. Mesh names below match
+     the real node names of this project's own bundled
+     mesh-render-order-rosa.glb (#CharacterWithFlames is a
+     placeholder id here — swap in #mesh-render-order-rosa, or see
+     mesh-render-order-unlit-material-rosa-scene.html for that
+     working version). Mesh names must match the exact node names
+     authored in your own glTF — verify with a glTF inspector or your
+     DCC tool's outliner (see the feature guide §3 for a real case
+     where a hardcoded name scheme never actually matched its own
+     source asset).
+     ============================================================ -->
+<a-entity
+    gltf-model="#CharacterWithFlames"
+    material="transparent: true"
+    mesh-render-order="orange flame: 1; violet flame: 2; green flame: 3; lime flame: 4; person squat: 5"
+    scale="12 12 12"
+    position="0 0 -30">
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — combined with the whole-model render-order component
+     on a DIFFERENT entity: mesh-render-order orders PartA/PartB's own
+     internal sub-meshes against each other, while render-order (on
+     the sibling entity) orders the two whole objects against each
+     other. Safe to combine as long as they're not on the SAME
+     entity's meshes and neither is inside an [lod-object] group.
+     ============================================================ -->
+<a-entity gltf-model="#LayeredProp" mesh-render-order="Inner: 0; Outer: 1" render-order="0"></a-entity>
+<a-entity gltf-model="#GlassPane" material="transparent: true; opacity: 0.4" render-order="1"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  mesh-render-order   string, default "". Semicolon-separated
+                       "MeshName: number" pairs. Every mesh node inside the
+                       loaded model whose name matches a key gets its
+                       three.js `renderOrder` set to that value; unlisted
+                       meshes are left untouched. Re-applies automatically
+                       if the attribute value itself changes at runtime.
+
+  Malformed entries (missing colon, non-numeric value) are skipped with a
+  console warning — one typo doesn't blank out the whole mapping.
+
+  Do NOT place on a `.lod-mesh`/`.lod-billboard` child of an [lod-object],
+  or anywhere under an active LOD instance — `lod-manager` recomputes and
+  overwrites `renderOrder` for every mesh node in that child uniformly,
+  every frame, erasing any per-name distinction set here. See
+  MESH-RENDER-ORDER-FEATURE-GUIDE.md §4 for the full explanation.
+-->

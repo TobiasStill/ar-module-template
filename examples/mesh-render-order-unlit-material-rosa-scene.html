@@ -1,0 +1,132 @@
+<!--
+  MESH-RENDER-ORDER + UNLIT-MATERIAL — recreating Rosa_module's original scene
+  ==============================================================================
+  Not compiled or served by anything in this project — reference markup
+  reproducing `Rosa_module`'s actual ArModule.vue scene wiring as closely as
+  the universalized components allow. Read MESH-RENDER-ORDER-FEATURE-GUIDE.md
+  and LOD-BILLBOARD-FEATURE-GUIDE.md's unlit-material section first — this
+  file is about mapping the ORIGINAL's specific values onto the new
+  components, not what each attribute does on its own.
+
+  Source: `Rosa_module`'s src/ArModule.vue + src/a-frame-components/
+  unlit-materials.ts + src/a-frame-components/mesh-render-order.ts — the same
+  branch this pair of components was originally requested from and cataloged
+  under (see FEATURE-CATALOG.md). Its core 3D content entity (the model +
+  ground plane below) is reproduced verbatim, attribute-for-attribute.
+  Deliberately NOT reproduced: `Rosa_module`'s own project-specific camera-
+  compensation wrapper (an `<a-entity position="0 -7.65 -7.2">` around the
+  whole scene, added there to reconcile that specific project's standalone-
+  preview camera against its real deployed host's camera — not part of
+  mesh-render-order/unlit-material, and not meaningful outside that one
+  project's own deployment) and its Vue-specific top-bar/spinner
+  loading-progress overlay (unrelated UI chrome, not 3D scene content, not
+  something a static example.html file can demonstrate anyway).
+
+  THE ASSET — src/assets/mesh-render-order-rosa.glb — comes from a
+  DIFFERENT branch than the scene above: the plain `Rosa` branch (distinct
+  from `Rosa_module` and `Rosa_production`), which carries an uncompressed
+  (435 KB) copy of the same character model. `Rosa_module`'s own copy is
+  152 KB, almost certainly run through a compressor (its manifest.ts calls
+  `patchGLTFLoaderWithMeshoptDecoder()` specifically to load `gltfpack -c`
+  output — infrastructure this example doesn't need or carry over, since
+  the uncompressed asset requires no such decoder). That swap matters here
+  specifically: the uncompressed file's mesh nodes still carry their
+  original names — verified directly by extracting and reading the file's
+  embedded glTF JSON, not assumed:
+    "orange flame", "violet flame", "green flame", "lime flame",
+    "person squat", "person stand", "person nails"
+  `Rosa_module`'s compressed copy has every one of those names stripped,
+  which would have made this exact example untestable against real data —
+  the scene wiring is `Rosa_module`'s; the working asset had to come from
+  `Rosa` instead.
+
+  A REAL FINDING, NOT JUST A COMPRESSION ARTIFACT: `Rosa_module`'s own
+  mesh-render-order.ts hardcodes a RENDER_ORDER map keyed on
+  "Mesh_1".."Mesh_8" — but even the uncompressed, never-recompressed `Rosa`
+  branch's asset has no meshes named that; its real names were always
+  "orange flame" / "person squat" / etc., as listed above (7 meshes, not
+  8). `Rosa_module`'s hardcoded map plausibly never matched this asset at
+  any point in its life, in either branch — a stale leftover from an even
+  earlier draft of the model, not something a later compression step
+  broke. This recreation uses the asset's REAL mesh names instead, so it's
+  actually exercising the render-order logic end-to-end (open devtools and
+  toggle values to see the effect), which `Rosa_module`'s own source code,
+  as found, could not have done against either copy of this asset.
+
+  ORDER VALUES BELOW are a reasonable interpretation (flames first, then
+  the three "person" layers stacked on top), not a recovered original
+  intent — there was no original working mapping to recover from, per the
+  finding above. Adjust to taste; the point of this example is the
+  mechanism, not a specific visual result.
+
+  UNLIT-MATERIAL MAPPING: `Rosa_module`'s own unlit-materials.ts always
+  forced `alphaTest: 0.5` and never touched castShadow/receiveShadow at
+  all (it only replaced node.material) — so `keepShadowBehavior: true`
+  here isn't a stylistic choice, it's what reproduces the original's
+  actual behaviour: the entity's `shadow` component keeps working exactly
+  as it would have on the source branch, instead of this port's own
+  default (force both off, correct for the common LOD-billboard case but
+  wrong here).
+
+  NOT CARRIED OVER:
+    - Scene lighting — `Rosa_module`'s ArModule.vue declared none at all.
+      Since the ground plane below uses A-Frame's `shader: shadow`
+      material, which needs at least one shadow-casting light to render
+      anything, one plain directional light is added here that the source
+      didn't have — position/tune however suits your own scene.
+    - `Rosa_module`'s manifest.ts sets `camera: {}` (deliberately empty —
+      its own comment there explains the real deployed host owns the
+      shared `<a-camera>` and applies manifest values with no filtering,
+      so a module setting position/cursor/raycaster there would relocate
+      the shared camera for every other module on screen). This template's
+      own Manifest type independently arrives at the same rule, enforced
+      rather than just documented (see lib/manifest.types.ts's
+      CAMERA_PROPS_FORBIDDEN) — so there is nothing to port for that part
+      either way.
+    - The camera-compensation wrapper and loading-progress overlay
+      mentioned above (Source paragraph) — project-specific, not part of
+      either universalized component.
+-->
+
+<a-entity light="type: directional; intensity: 1.2; color: #ffffff; castShadow: true" position="1 6 3"></a-entity>
+
+<a-entity no-frustum-cull>
+
+  <!-- The character model. mesh-render-order layers its own overlapping
+       translucent flame/person planes; unlit-material flattens every
+       material to a fully-lit, always-bright look regardless of scene
+       lighting (matching the source's baked-texture-driven look) while
+       keepShadowBehavior: true preserves the `shadow` component below
+       exactly as authored, instead of this component's own LOD-billboard-
+       oriented default of disabling shadows outright. -->
+  <a-entity
+      gltf-model="#mesh-render-order-rosa"
+      unlit-material="alphaTest: 0.5; keepShadowBehavior: true"
+      mesh-render-order="
+        orange flame: 1;
+        violet flame: 2;
+        green flame: 3;
+        lime flame: 4;
+        person squat: 5;
+        person stand: 6;
+        person nails: 7;
+      "
+      scale="12 12 12"
+      rotation="0 0 0"
+      position="0 0 -30"
+      shadow>
+    <a-entity id="group" position="0 0 0"></a-entity>
+  </a-entity>
+
+  <!-- Ground plane — identical values to the source's ArModule.vue. -->
+  <a-plane
+      id="ground"
+      rotation="-90 0 0"
+      position="-50 0 -50"
+      width="500"
+      height="500"
+      material="shader: shadow; opacity: 0.3; transparent: true"
+      shadow>
+  </a-plane>
+
+</a-entity>

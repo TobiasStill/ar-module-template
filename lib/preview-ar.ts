@@ -4,6 +4,7 @@ import { manifest } from "../src/manifest";
 import {
   registerManifestComponents,
   applyCameraSettings,
+  applyHostLights,
   configureImageTargets,
   assetElement
 } from "./host-runtime";
@@ -70,6 +71,13 @@ const ArPreviewApp = {
           return h(el.tag, el.attrs);
         })
       ),
+      // The host's two scene lights, grouped as in the host (ArScene.vue in
+      // ar-demo-backend), so the module previews under the light it gets in
+      // the app — and `hostLights: false` (applyHostLights) can switch them off.
+      h("a-entity", { id: "host-lights" }, [
+        h("a-light", { type: "ambient", color: "#BBB" }),
+        h("a-light", { type: "directional", color: "#FFF", intensity: "0.6", "cast-shadow": "true", position: "-0.5 1 1" })
+      ]),
       h("a-camera", {
         id: "camera",
         position: "0 0 0",
@@ -130,6 +138,7 @@ nextTick(() => {
       // camera settings, and feed its image targets to XR8 before mounting.
       registerManifestComponents(manifest);
       applyCameraSettings(document.querySelector("a-camera"), manifest.camera || {});
+      applyHostLights(manifest);
       configureImageTargets((window as any).XR8, manifest.imageTargets || []);
       assetsReady.value = true;
     };

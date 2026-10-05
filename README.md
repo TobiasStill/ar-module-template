@@ -133,9 +133,22 @@ export const manifest: Manifest = {
   components: {                          // name → AFRAME component definition
     "no-frustrum-cull": noFrustrumCull
   },
-  imageTargets: [videoTarget]            // 8th Wall image-target JSON
+  imageTargets: [videoTarget],           // 8th Wall image-target JSON
+  hostLights: false                      // optional, see below
 };
 ```
+
+### Host lights: `hostLights`
+
+The host keeps two lights on in its scene (ambient `#BBB` and a directional
+light at 0.6, grouped as `#host-lights` in `ArScene.vue`), and every light a
+module brings adds on top of them. A module that brings its complete lighting
+sets `hostLights: false`: the host then switches its own lights off while the
+module is shown (the group is hidden — three.js skips invisible lights,
+shadows included) and back on at unmount. Default `true` = host lights stay
+on, which a module without lights of its own needs. The module contains no
+code for this; both previews have the same `#host-lights` group and apply the
+field the same way (`applyHostLights` in `lib/host-runtime.ts`).
 
 ### Camera keys are restricted
 

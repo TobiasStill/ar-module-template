@@ -134,22 +134,21 @@ export const manifest: Manifest = {
     "no-frustrum-cull": noFrustrumCull
   },
   imageTargets: [videoTarget],           // 8th Wall image-target JSON
-  hostLightScale: 0.3                    // optional, see below
+  hostLights: false                      // optional, see below
 };
 ```
 
-### Host lights: `hostLightScale`
+### Host lights: `hostLights`
 
-The host keeps two lights on in its scene permanently (ambient `#BBB` and a
-directional light at 0.6), and every light a module brings adds on top of
-them. A module that brings its complete lighting therefore comes out brighter
-than authored. `hostLightScale` (optional, default `1` = untouched) scales the
-intensity of all lights the scene already has when the module mounts — i.e.
-the host's — and restores them on unmount. Nothing to call from
-`ArModule.vue`: the module root in `lib/main.ts` applies it
-(`lib/host-lights.ts`). Both previews contain the host's two lights, so you see
-the module under the same light as in the app. three.js can't exclude a light
-per object, which is why the module scales the host's lights instead.
+The host keeps two lights on in its scene (ambient `#BBB` and a directional
+light at 0.6, grouped as `#host-lights` in `ArScene.vue`), and every light a
+module brings adds on top of them. A module that brings its complete lighting
+sets `hostLights: false`: the host then switches its own lights off while the
+module is shown (the group is hidden — three.js skips invisible lights,
+shadows included) and back on at unmount. Default `true` = host lights stay
+on, which a module without lights of its own needs. The module contains no
+code for this; both previews have the same `#host-lights` group and apply the
+field the same way (`applyHostLights` in `lib/host-runtime.ts`).
 
 ### Camera keys are restricted
 

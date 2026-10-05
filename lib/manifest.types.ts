@@ -41,4 +41,11 @@ export interface Manifest {
   components?: Record<string, ComponentDefinition>;
   /** XR8 image-target descriptors (the JSON exported by the 8th Wall target tool). */
   imageTargets?: unknown[];
+  /**
+   * Factor for the intensity of the host's own scene lights while this module
+   * is shown (restored on unmount) — e.g. 0.3 for a module that brings its
+   * complete lighting. Default 1 = untouched. Applied by lib/main.ts; see
+   * lib/host-lights.ts.
+   */
+  hostLightScale?: number;
 }

@@ -133,9 +133,23 @@ export const manifest: Manifest = {
   components: {                          // name → AFRAME component definition
     "no-frustrum-cull": noFrustrumCull
   },
-  imageTargets: [videoTarget]            // 8th Wall image-target JSON
+  imageTargets: [videoTarget],           // 8th Wall image-target JSON
+  hostLightScale: 0.3                    // optional, see below
 };
 ```
+
+### Host lights: `hostLightScale`
+
+The host keeps two lights on in its scene permanently (ambient `#BBB` and a
+directional light at 0.6), and every light a module brings adds on top of
+them. A module that brings its complete lighting therefore comes out brighter
+than authored. `hostLightScale` (optional, default `1` = untouched) scales the
+intensity of all lights the scene already has when the module mounts — i.e.
+the host's — and restores them on unmount. Nothing to call from
+`ArModule.vue`: the module root in `lib/main.ts` applies it
+(`lib/host-lights.ts`). Both previews contain the host's two lights, so you see
+the module under the same light as in the app. three.js can't exclude a light
+per object, which is why the module scales the host's lights instead.
 
 ### Camera keys are restricted
 

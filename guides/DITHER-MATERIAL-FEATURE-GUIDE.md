@@ -1,20 +1,44 @@
 # Dither material feature guide
 
+<!-- overview -->
+## Overview
+
+Makes a model partly see-through in a grainy, "screen door" way: instead of
+the whole surface turning faintly glassy, it dissolves into a fine pattern
+of solid dots and holes — like looking through a net curtain or a
+half-tone print. The lower the opacity, the sparser the dots. Three dot
+patterns are available: a tidy regular grid, random grain, or soft
+diagonal streaks. Because every dot is either fully there or fully gone,
+overlapping see-through objects never flicker or swap places the way
+ordinary transparency can.
+
+<!-- /overview -->
+
+## Technical summary
+
 Screen-door dithered transparency for a loaded model's materials — a
 **manual, fixed-opacity** dither, not driven by camera distance.
 Applicable to any entity — a `gltf-model` or a plain A-Frame primitive.
-Ported from `Fanyu_module`'s `dither-transparency.ts`, renamed to fit this
-project's `[x]-material` naming (see
+Named to fit the template's `[x]-material` naming (see
 [unlit-material](LOD-BILLBOARD-FEATURE-GUIDE.md#unlit-material),
 [material-properties](MATERIAL-PROPERTIES-FEATURE-GUIDE.md)) and to
-distinguish it from the two *distance-driven* dither variants already in
-this template — see [3. Under the hood](#3-under-the-hood) for two real
-fixes this port made, plus a `ditherType` attribute added after the port
-(purely aesthetic — see [2](#2-entities--attributes)), and
+distinguish it from the two *distance-driven* dither variants — see
+[3. Under the hood](#3-under-the-hood) for how it handles primitives and
+shared materials, [2](#2-entities--attributes) for the purely aesthetic
+`ditherType` choice, and
 [4. Incompatibilities](#4-incompatibilities-risks--troubleshooting) for why
-this is now a **fourth** independent `onBeforeCompile`-based dithering
+this is a **fourth** independent `onBeforeCompile`-based dithering
 implementation in this codebase, and what that means for combining it with
 the other three.
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Fanyu_module`'s `dither-transparency.ts`, renamed on the way.
+The port made two real fixes (see §3) and later gained the `ditherType`
+attribute, which the source didn't have.
+
+<!-- /project-specific -->
 
 Files:
 
@@ -33,19 +57,12 @@ covered there, not repeated here.
 1. **Copy the file** — `dither-material.ts` — into your project's own
    `src/a-frame-components/`. No path changes, no data files.
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import ditherMaterial from "./a-frame-components/dither-material";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "dither-material": ditherMaterial
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Wire it into the scene** — see
    [2. Entities & attributes](#2-entities--attributes) or copy directly
@@ -105,8 +122,7 @@ dither-writers each independently picked a different pattern of their own:
 `proximity-fade-dither.ts` already uses the same ordered Bayer pattern this
 component defaults to, `proximity-cutout.ts` uses the pseudo-random hash,
 and `lod-object.ts`'s `setupDitherMaterial()` uses interleaved gradient
-noise — `ditherType` (added after the port, not part of the source) simply
-exposes the choice between the three formulas that already existed
+noise — `ditherType` simply exposes the choice between the three formulas that already existed
 somewhere in this codebase, rather than fixing this component to just one.
 
 ### Why the program cache key includes `ditherType`
@@ -123,35 +139,44 @@ entity. Including `ditherType` in the key guarantees each pattern always
 gets (and keeps) its own compiled program, including when `ditherType`
 changes on an already-mounted entity at runtime.
 
-### Two fixes made during this port
+### Primitive support and clone-before-mutate
 
-**Primitive support.** The source only listened for `gltf-model`'s own
-`model-loaded`, which never fires for a plain A-Frame primitive — the same
-gap found and fixed in every other material-mutating component on this
-branch (see
-[RENDER-ORDER-FEATURE-GUIDE.md §3](RENDER-ORDER-FEATURE-GUIDE.md#3-under-the-hood)
-for the original finding). Switched to `object3dset` plus an immediate
-check, matching the rest of this family.
+**Primitive support.** `gltf-model`'s own `model-loaded` never fires for a
+plain A-Frame primitive, so the component listens for `object3dset` plus an
+immediate check, like every other material-mutating component in the
+template (see
+[RENDER-ORDER-FEATURE-GUIDE.md §3](RENDER-ORDER-FEATURE-GUIDE.md#3-under-the-hood)).
 
-**Clone before mutate — a real, previously-latent bug.** The source
-mutated each material **in place**, without cloning it first. A glTF asset
-loaded via `gltf-model` shares one material object across every instance of
-that asset (e.g. several [`random-field`](RANDOM-FIELD-FEATURE-GUIDE.md)
-clones of the same referenced entity) unless something clones it first —
-see
+**Clone before mutate.** A glTF asset loaded via `gltf-model` shares one
+material object across every instance of that asset (e.g. several
+[`random-field`](RANDOM-FIELD-FEATURE-GUIDE.md) clones of the same
+referenced entity) unless something clones it first — see
 [RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md §4.2](../cross-feature-reference-docs/RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md#42-materials-must-be-cloned-before-mutating).
-Concretely, on the source as written: a second `dither-transparency`
-instance sharing that same source material would see the idempotency flag
-the first instance already set directly on the shared object and silently
-no-op — no visible dithering on the second instance at all — and calling
-`remove()` on *either* instance would revert the *shared* material,
-un-dithering the still-mounted other instance too. This port clones each
-material on first encounter (marking the clone itself, not the shared
-original, via `userData.__ditherMaterial`) so every instance owns an
-independent copy, exactly like every other material-mutating component in
-this template already does.
+Mutating in place would break two ways: a second instance sharing that
+material would see the idempotency flag the first one set on the shared
+object and silently no-op (no dithering at all), and `remove()` on *either*
+instance would revert the *shared* material, un-dithering the other one
+too. The component therefore clones each material on first encounter
+(marking the clone itself, not the shared original, via
+`userData.__ditherMaterial`), so every instance owns an independent copy.
+
+<!-- project-specific -->
+#### Project context: `Fanyu_module`
+
+Both points above were fixes made during the port. The source
+(`dither-transparency.ts`) only listened for `model-loaded` and mutated
+each material in place, with exactly the two failure modes described.
+
+<!-- /project-specific -->
 
 ## 4. Incompatibilities, risks & troubleshooting
+
+### Grain Shimmer chains, doesn't replace
+
+[`grain-shimmer`](GRAIN-SHIMMER-FEATURE-GUIDE.md) clones the material and
+chains an `onBeforeCompile` patch that is already on it. If this component
+patches *after* grain-shimmer (replacing `onBeforeCompile`), the grain is
+lost — set grain-shimmer last.
 
 ### A fourth `onBeforeCompile` writer — same collision rule as the other three
 
@@ -162,7 +187,7 @@ This template now has **four** independent components that patch
 "whichever patches a given material last wins, the other goes silently
 inert" rule already documented in
 [RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md §4.4](../cross-feature-reference-docs/RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md#44-onbeforecompile--program-caching) —
-this port doesn't change that rule, it just adds a fourth participant to
+this component doesn't change that rule, it just adds a fourth participant to
 it. Don't target the same material with `dither-material` and any of the
 other three at once.
 

@@ -1,0 +1,49 @@
+<!--
+  GRAIN SHIMMER — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/grain-shimmer.ts):
+    grain-shimmer   On any entity with a mesh (glTF model or primitive).
+                    filter: textures without mipmaps (fine-grained textures
+                    sparkle with movement); grain: shader grain fixed to the
+                    surface (optionally animated).
+
+  The effect lives from movement — judge it on a phone (npm run dev:ar),
+  not in a still screenshot.
+-->
+
+<!-- ============================================================
+     Example 1 — the #20 Solid Dream Level look on a model whose
+     textures are already grainy (spray paint, noise): only switch
+     the mipmaps off.
+     ============================================================ -->
+<a-entity gltf-model="#SprayedShell" grain-shimmer="grain: 0"></a-entity>
+
+<!-- ============================================================
+     Example 2 — the same look on a smoothly textured model: add
+     fine shader grain (300 cells per unit), fixed to the surface,
+     sparkling when you move.
+     ============================================================ -->
+<a-entity gltf-model="#Sculpture" grain-shimmer></a-entity>
+
+<!-- ============================================================
+     Example 3 — coarse, hard grain that trickles even when nothing
+     moves (film-grain feel).
+     ============================================================ -->
+<a-entity gltf-model="#Sculpture"
+          grain-shimmer="filter: nearest; grain: 0.6; grainScale: 150; animated: true; speed: 18"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+    filter      string   linear   linear | nearest = textures without mipmaps
+                                  (nearest = harder, pixelated); mipmap = leave
+                                  textures as they are.
+    grain       number   0.35     Shader grain strength 0–1; 0 = no shader change.
+    grainScale  number   300      Grain cells per local unit (object space).
+    animated    boolean  false    Re-seed the grain over time (also moves when
+                                  nothing moves).
+    speed       number   24       Re-seeds per second when animated.
+-->

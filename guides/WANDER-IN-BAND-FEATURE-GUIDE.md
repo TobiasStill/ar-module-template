@@ -1,13 +1,37 @@
 # Wander-in-band feature guide
 
+<!-- overview -->
+## Overview
+
+Lets a creature or object roam around a central point, like a dog circling
+its owner in the park or a moth circling a lamp. It keeps to a ring-shaped
+zone — never too close, never too far — strolls along steadily, now and
+then takes an unexpected turn, bobs gently up and down and always faces
+where it's heading. Several wanderers in the same group politely avoid
+bumping into each other. How calm or erratic the movement is can be set
+with one slider.
+
+<!-- /overview -->
+
+## Technical summary
+
 Makes an entity continuously orbit within an annulus ("band") around a
 center entity — a steady baseline circular orbit with a randomly
 retargeted angular deviation layered on top, subtle vertical floating, soft
 spiral-back at the band's edges, and gentle mutual avoidance of other
-`wander-in-band` entities sharing the same DOM parent. Ported from
-`Fanyu_module`, essentially unchanged — see
-[3. Under the hood](#3-under-the-hood) for the one cosmetic normalization
-made and why nothing else needed to change.
+`wander-in-band` entities sharing the same DOM parent — see
+[3. Under the hood](#3-under-the-hood).
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Fanyu_module`, essentially unchanged (see §3), in the same
+batch as [Follow Node](FOLLOW-NODE-FEATURE-GUIDE.md). The source project
+used the two side by side — a wandering creature carrying a positional
+`sound`, with `follow-node` used elsewhere for the main character's sound
+source — but neither depends on the other.
+
+<!-- /project-specific -->
 
 Files:
 
@@ -17,30 +41,20 @@ examples/wander-in-band-usage.html   # scene wiring + full attribute reference
 ```
 
 No assets. Independent of `follow-node` (see
-`FOLLOW-NODE-FEATURE-GUIDE.md`) — both were ported from the same source
-branch in the same batch, but neither depends on the other; the source
-project just happened to use them side by side (a wandering creature
-carrying a positional `sound`, with `follow-node` used elsewhere for the
-main character's sound source).
+`FOLLOW-NODE-FEATURE-GUIDE.md`), though the two combine well — e.g. a
+wandering creature carrying a positional `sound`.
 
 ## 1. Step-by-step: adding this to a new project
 
 1. **Copy the file** — `wander-in-band.ts` — into your project's own
    `src/a-frame-components/`. No path changes, no data files.
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import wanderInBand from "./a-frame-components/wander-in-band";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "wander-in-band": wanderInBand
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Wire it into the scene** — see
    [2. Entities & attributes](#2-entities--attributes) or copy directly
@@ -81,15 +95,6 @@ seeds its own random heading/timing/orbit-direction once, at `init()`.
 
 ## 3. Under the hood
 
-### What changed from the source
-
-Only one thing, and it's cosmetic: the source accessed three.js via
-`declare const AFRAME: any; const THREE = (AFRAME as any).THREE;`; this
-port uses the bare `declare const THREE: any;` every other component on
-this branch already uses (the same global object `AFRAME.THREE` points
-at). No behavior change. Nothing else was touched — see the note below on
-why.
-
 ### The movement model
 
 The baseline heading always follows the *tangent* of the circle at the
@@ -113,18 +118,37 @@ spawn-time Y (`floatIntensity` scales the amplitude only — frequency is
 fixed); `rotation.y` follows the computed heading directly (plus
 `yawOffset`), so the model visibly faces its direction of travel.
 
-### Why no functional changes were needed
+### Generic by design
 
-Checked deliberately, not skipped: every tunable (radii, float, speed,
-chaos, yaw) is a freely-set schema attribute with sensible defaults, none
-hardcoded to a specific model or scene. The "avoid overlapping with
-similar entities" behavior is scoped by DOM parent (see below) — a
-generically reasonable authoring convention (group wanderers you want
-mutually aware of each other under one wrapper entity), not a hidden
-project-specific assumption. The component was already exactly as generic
-as this port needed it to be.
+Every tunable (radii, float, speed, chaos, yaw) is a freely-set schema
+attribute with sensible defaults, none hardcoded to a specific model or
+scene. The "avoid overlapping with similar entities" behavior is scoped by
+DOM parent (see below) — a generically reasonable authoring convention
+(group wanderers you want mutually aware of each other under one wrapper
+entity), not a hidden project-specific assumption.
+
+<!-- project-specific -->
+#### Project context: `Fanyu_module`
+
+##### What changed from the source
+
+Only one thing, and it's cosmetic: the source accessed three.js via
+`declare const AFRAME: any; const THREE = (AFRAME as any).THREE;`; the
+port uses the bare `declare const THREE: any;` every other component on
+this branch already uses (the same global object `AFRAME.THREE` points
+at). No behavior change. Nothing else needed to change — the source was
+already as generic as described above (checked deliberately, not skipped).
+
+<!-- /project-specific -->
 
 ## 4. Incompatibilities, risks & troubleshooting
+
+### Shares the entity transform with Placement & Gestures — don't combine on one entity
+
+[`place-in-front`](PLACEMENT-FEATURE-GUIDE.md) writes position/rotation/scale
+on every placement, and [`gesture-control`/`hold-drag`](GESTURES-FEATURE-GUIDE.md)
+write them while a gesture runs. Put this component on a parent or child of
+such an entity, never on the same one (found while adding those features).
 
 ### Mutual avoidance is scoped by DOM parent — know this before nesting
 

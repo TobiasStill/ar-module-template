@@ -13,7 +13,7 @@ both:
 
 Almost the whole workflow is the same either way: design it well, follow
 the file-naming convention, write the guide, update the catalog, check for
-incompatibilities, commit. The one part that's specific to porting —
+incompatibilities, commit, release. The one part that's specific to porting —
 reading and scoping the feature on its *source* branch before touching
 anything — is broken out as its own clearly-marked **subroutine**, run once
 near the start and only when there's an actual source branch to scope.
@@ -31,18 +31,15 @@ updated). `QUICK_START_GUIDE.md` is a separate, short, non-technical guide
 for artists using this template's features — not part of researching or
 building a feature, but step 11 covers when it needs a touch-up.
 
-## 0. Keep `main` current — but don't touch feature branches with it
+## 0. Work on `feature_template`, not on `main`
 
-`git fetch origin`, then merge into **local `main` only**
-(`git checkout main && git merge origin/main`). Never merge `main`'s
-changes into a source feature branch (`Jakob_module`, etc.) — those stay
-exactly as their authors left them; this only matters if you're porting
-(see step 1). `feature_template` is branched fresh from this updated
-`main` (or, once it exists, already sits on top of it — see step 2), so
-it's `main`'s current state every feature has to work against — an
-original feature needs this just as much as a ported one, since it's
-still going to sit in the same shared scene as everything else already on
-`feature_template`.
+`main` is the released template that people download and fork.
+`feature_template` is where all work happens; `main` only receives tested states
+of it (step 14). So every feature has to work against the current
+`feature_template`, whether it's ported or original. Never merge `main` or
+`feature_template` into a source feature branch (`Jakob_module`, etc.) — those
+stay exactly as their authors left them; this only matters if you're porting
+(see step 1).
 
 ## 1. Is this a port, or an original feature?
 
@@ -56,6 +53,12 @@ still going to sit in the same shared scene as everything else already on
 ---
 
 ## Porting subroutine: scoping a feature on its source branch
+
+Student and artist project branches are in the private repository
+`working-on-democracy/ar-module-template-archive`. With access:
+`git remote add archive https://github.com/working-on-democracy/ar-module-template-archive.git`,
+then `git fetch archive`, and read from `archive/<branch>`. Port code only, and
+never push these branches to the public repository.
 
 **Only applies when adapting an existing feature from a project-specific
 fork branch (e.g. `Jakob_module`) into `feature_template`. Skip this
@@ -89,14 +92,12 @@ this subroutine or started from an original idea.
 
 ---
 
-## 2. Branch (or reuse) `feature_template`
+## 2. Use `feature_template`
 
-Created once, from `main`, with **no upstream tracking**
-(`git checkout -b feature_template main` — not `origin/main`, and don't set
-`-u` afterwards) so a stray `git push` can't land on a shared branch by
-accident. Every subsequent feature — ported or original — is added to this
-same branch, on top of whatever's already there — don't re-branch from
-`main` per feature, or you'll lose every feature already on it.
+It already exists. Every feature — ported or original — is added to this same
+branch, on top of whatever's already there. Don't start a feature from `main`:
+it can be behind `feature_template`, so features not yet released would be
+missing.
 
 ## 3. Design for universality before writing code
 
@@ -125,7 +126,9 @@ Ask, for every piece of the feature:
   invisible-hit-area-child-plane pattern became a `zoneSize`/`zoneOffset`
   attribute pair directly on the button entity. A hardcoded camera offset
   stays out of anything universalized — that's specific to one project's
-  scene, not the feature. For an original feature, this means: don't
+  scene, not the feature (where content ends up is handled by
+  `place-in-front`/`world-origin`, see
+  `cross-feature-reference-docs/SCENE-PLACEMENT-GUIDE.md`). For an original feature, this means: don't
   hardcode anything that only makes sense for whatever scene you happened
   to prototype it in.
 - **Define the public surface deliberately**: schema attributes (with
@@ -203,8 +206,10 @@ The convention adopted:
 
 This means adopting a feature is always a flat file copy into the same
 folders a project already has — never a path change or a move. Document the
-convention itself once (currently in the comment above the `components` map
-in `src/manifest.ts`); each new feature just follows it.
+convention itself once (currently in the header comment of
+`src/manifest.ts`); each new feature just follows it. With automatic
+registration the file name is also the component name — choose it with
+that in mind.
 
 ## 5. Decide which assets are integral to the feature
 
@@ -215,13 +220,11 @@ belongs either. Split:
 - **Integral, feature-defining assets** — needed for the feature's own code
   to function, and generic enough that any project would want the same
   ones (or could reasonably use them as-is). The sound feature's four
-  play/pause/stop/restart icons are this: `sound-controller`'s GUI panel
-  code references them by id directly, and a restart/stop/play/pause icon
-  set isn't specific to any one project's content. If porting, these get
-  copied over for real (`git checkout <source-branch> -- <path>`), renamed
-  to the naming convention, and committed. If original, you're authoring
-  them fresh — same bar applies: would this asset make sense shipped as
-  part of the generic feature, or is it really just placeholder content?
+  play/pause/stop/restart icons are this: the GUI panel code references them
+  by id directly, and a restart/stop/play/pause icon set isn't specific to
+  any one project's content. These are made fresh, even when porting: add them
+  to `scripts/generate-demo-assets.ts` (or use a file whose free use is
+  documented), name them by the convention, and put them in `examples/assets/`.
 - **Artistic / project-specific content** — 3D models, recorded audio
   clips, anything that's *what this particular project's feature instance
   happens to play or show*. The sound feature's exhibit models and
@@ -233,6 +236,15 @@ belongs either. Split:
 When in doubt: would a *different* project using this feature plausibly want
 the exact same file? If yes, it's integral. If it's "content," it's not.
 
+**Never copy an asset from a source branch.** Models, images, sound, video and
+geometry data in student and project branches belong to their authors and are
+not free to redistribute. This also applies to an asset you only want as a demo.
+
+**Nothing goes into `src/assets/` or `src/image-targets/` on `feature_template`.**
+Both stay empty, because every file in them ships with every module built from
+the template. Demo files live in `examples/assets/` and
+`examples/image-targets/`, and the example says which ones to copy.
+
 Once an asset is confirmed integral, consider whether it's worth
 compressing before committing (`npm run compress-assets`) — see
 `cross-feature-reference-docs/ASSET-COMPRESSION-GUIDE.md`. Not mandatory
@@ -240,15 +252,19 @@ for every asset (a small icon doesn't need it), but a multi-megabyte
 `.glb` shipped uncompressed adds real load time to every project that
 copies the feature in.
 
-## 6. Implement components, register in `manifest.ts` with a minimal diff
+## 6. Implement components — registration is automatic
 
-Write the components in `src/a-frame-components/`. Register them in
-`src/manifest.ts` **additively** — import the new components, add entries
-to the existing `components` map — without touching whatever else is
-already registered there (image targets, other features' entries, etc.).
-The diff for adding a whole feature's components to the manifest should be
-small and obviously additive, easy to review in isolation from everything
-else in the file.
+Write the components in `src/a-frame-components/`, **one component per
+file, with a default export, the file named exactly like the component**
+(`place-in-front.ts` → `place-in-front`). That's all: the build scans which
+components the module uses and registers exactly those
+(`virtual:used-components`, see `scripts/used-components.ts` and README
+"Components register automatically") — no `manifest.ts` edit. Helper files
+shared between components must **not** have a default export (that's what
+marks them as helpers). Make sure a component that uses another one names
+it literally in its source (e.g. `setAttribute("hold-drag", …)`), so the
+transitive scan finds it. Only touch `src/manifest.ts` for things that
+aren't components (camera settings, image targets), additively.
 
 ## 7. Demonstrate usage with example files — don't touch `ArModule.vue`
 
@@ -291,8 +307,8 @@ One `<FEATURE>-FEATURE-GUIDE.md` per feature, in `guides/`, covering — in
 this order, matching `guides/SOUND-FEATURE-GUIDE.md`:
 
 1. **Step-by-step setup** — a literal checklist for copying the feature
-   into a fresh project: which files to copy, how to register them in
-   `manifest.ts`, how to wire the scene, how to integrate any GUI pieces,
+   into a fresh project: which files to copy (registration is automatic —
+   say so), how to wire the scene, how to integrate any GUI pieces,
    how to verify it worked. Written for someone who's never seen the
    internals.
 2. **Entities & attributes** — every custom element/attribute the feature
@@ -305,6 +321,62 @@ this order, matching `guides/SOUND-FEATURE-GUIDE.md`:
    made from scratch for an original feature.
 4. **Incompatibilities, risks & troubleshooting** — see step 12; this
    section's content comes directly out of that check.
+
+### Wiki-ready structure: overview and project context
+
+The guides (and the docs in `cross-feature-reference-docs/`) are read
+automatically by the `an-alle-wiki` build, which shows only the general
+explanations and leaves everything project-specific out. Two markers make
+that possible — use them in every new or edited guide:
+
+- **Overview first.** Directly under the `#` title, a short overview in
+  plain, visual language — what you can do with the feature, what the
+  visitor sees, what the result is; no code, no file names, no project
+  names. Wrapped exactly like this, then the technical intro under
+  `## Technical summary`:
+
+  ```markdown
+  <!-- overview -->
+  ## Overview
+
+  …
+
+  <!-- /overview -->
+
+  ## Technical summary
+  ```
+
+  Cross-feature docs use `## Introduction` (may be longer, still
+  non-technical) followed by `## About this guide`, inside the same
+  `<!-- overview -->` markers.
+
+- **Project context in its own block.** Anything that names or depends on
+  a specific project — source branch, student/client project, Augmented
+  Bahnhofsviertel work number, what a port changed compared to its
+  source, "found on project X", dates of a verification on a project
+  branch — goes into its own paragraph(s) with its own subheading, one
+  level below the surrounding section, in the section it belongs to:
+
+  ```markdown
+  <!-- project-specific -->
+  ### Project context: <project or "origin">
+
+  …
+
+  <!-- /project-specific -->
+  ```
+
+  The origin of a feature goes into a `Project context: origin` block
+  right after the technical intro. Never put such a block inside a list or
+  table — move the project remark out (end of the list/section) and keep
+  the general statement in place.
+
+- **The rest must read without the blocks.** Remove every project block
+  mentally: the general text must still make sense — no "the source",
+  "this port", "as in the original", no references into a project block,
+  no sections that become empty. Rephrase the general statement so it
+  stands on its own (e.g. "the component clones each material" instead of
+  "the port added cloning because the source didn't").
 
 ## 10. Update `FEATURE-CATALOG.md`
 
@@ -324,13 +396,22 @@ Add the new feature's entry following the existing ones as a template:
   project fork).
 - A "Guide: ... · Source: `<branch>`" line at the top of the feature's own
   section, matching the Index row.
+- **Keep the section's prose project-free**, as in the guides (step 9):
+  the description says what the feature does; anything about its origin
+  (source branch, what a port changed, a project's work number) goes into
+  a `<!-- project-specific -->` block with a `### Project context: origin`
+  heading after the description. In table cells, leave project remarks
+  out and put them in such a block below the table. The wiki build drops
+  these blocks, the "Source branch"/"Introduced by" columns and the
+  "· Source:" note.
 - **Assign 1–3 tags** — short, poignant labels more general than the
   one-line description, meant for at-a-glance scanning. Check
   `FEATURE-CATALOG.md`'s [Tags](FEATURE-CATALOG.md#tags) section (at the
   very end of the file) for the current full list — currently `sound`,
   `proximity`, `motion`, `animation`, `random`, `distribution`, `utility`,
   `visual-effect`, `procedural`, `material-properties`, `transparency`,
-  `dither`, `render-order`, `LOD`, `interaction`, `image-tracking`, but
+  `dither`, `render-order`, `LOD`, `interaction`, `image-tracking`,
+  `placement`, `ui`, `lighting`, `video`, but
   that list only grows, so treat it as a starting point, not the full set.
   Reuse an existing tag whenever the feature genuinely shares that theme
   with something already tagged that way — the whole point is that
@@ -399,8 +480,8 @@ detail belongs.
 Unlike `FEATURE-CATALOG.md`, this is **not** an every-feature update —
 `QUICK_START_GUIDE.md` deliberately never names or lists individual
 features (it points to `FEATURE-CATALOG.md` for that), so adding a routine
-feature that fits the existing pattern (copy files, add lines to
-`manifest.ts`, paste example markup into `ArModule.vue`) usually needs no
+feature that fits the existing pattern (copy files into
+`src/a-frame-components/`, paste example markup into `ArModule.vue`) usually needs no
 change there at all. Only revisit it if this feature (or the work around
 it) changed something the guide asserts about the *template itself* —
 e.g. a new top-level doc other artists should know about, a changed/added
@@ -420,7 +501,8 @@ example from the sound feature's guide is exactly this: `main` had that
 before any feature work started, and it turned out to matter). Concretely
 check:
 
-- **A-Frame component name collisions.** The host (and
+- **A-Frame component name collisions.** Component names are file names
+  (automatic registration). The host (and
   `lib/host-runtime.ts`, which mirrors it) registers manifest components by
   name and **skips duplicates** — if two features (or two forks both using
   this template) register the same component name with *different*
@@ -439,6 +521,13 @@ check:
   relocating or hijacking input for the shared camera), but a feature can
   still *read* camera state in ways that assume it's the only one doing so
   — check for that.
+- **Where things end up.** The module is mounted at `0 1.6 -3` in the
+  host and in `dev:ar`, at `0 1.5 0` in `dev`; 8th Wall's floor is world
+  y = 0. A feature that positions anything relative to the floor, the
+  camera or a tracked image must compute in world space and convert through
+  the parent's matrix (as `place-in-front`, `world-origin`, `attach-to`
+  do), never assume the module root is the world origin. See
+  `cross-feature-reference-docs/SCENE-PLACEMENT-GUIDE.md`.
 - **Visual/interaction overlap.** Two features' interactive trigger zones
   (or a feature's zone and `main`'s existing tappable content) occupying
   the same screen space in a real scene — even without any code conflict,
@@ -460,3 +549,18 @@ Only when explicitly asked. Stage exactly the feature's files — leave out
 unrelated local/untracked clutter that happens to be sitting in the working
 tree. Write a commit message that explains *why* the restructuring
 happened (e.g. the generic/feature-specific split), not just a file list.
+
+## 14. Release to `main`
+
+Only when explicitly asked, and from a state that has been tested on a phone.
+`main` is what people get, so it never receives commits directly. Open a pull
+request from `feature_template` and merge it with a merge commit:
+
+```sh
+gh pr create --base main --head feature_template
+gh pr merge --merge
+```
+
+`src/assets/` and `src/image-targets/` must still be empty, and a fresh clone must
+pass `npm ci` and `npm run build`. People with a fork get the release with
+`git merge upstream/main` (`QUICK_START_GUIDE.md`).

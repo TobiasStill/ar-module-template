@@ -20,12 +20,11 @@
   why it has no feature prefix). Use it standalone, or feed its texture
   into any other material.
 
-  BUNDLED EXAMPLE TEXTURES: src/assets/liquid-texture-target-1.webp and
-  liquid-texture-target-2.webp (auto-injected as #liquid-texture-target-1 /
-  -2, file name sans extension, like any other asset) are real images
-  salvaged from Zhichang_module for this purpose specifically — so Example
-  2/3 below actually demonstrate the `target` attribute revealing a real
-  photo, not just a placeholder id. They're demo content: swap them for
+  EXAMPLE TEXTURES: examples/assets/liquid-texture-target-1.webp and
+  liquid-texture-target-2.webp are generated abstract images. Copy them into
+  src/assets/ (they become #liquid-texture-target-1 / -2, file name sans
+  extension, like any other asset) so Example 2/3 below demonstrate the
+  `target` attribute revealing a real image. They're demo content: swap them for
   your own project's imagery (any image works; there's no required size —
   see LIQUID-TEXTURE-FEATURE-GUIDE.md for a note on right-sizing one for
   production).
@@ -52,7 +51,7 @@
      does (see liquid-texture.ts's exported createLiquidSampleMaterial). -->
 
 <!-- ============================================================
-     Example 2 — with a bundled custom target image. `target` is a
+     Example 2 — with a custom target image. `target` is a
      selector to an <img> asset (auto-injected from src/assets/ like
      any other asset). The ink reveals toward the image's dark/ink
      areas and follows its edges as pulse() is called repeatedly.
@@ -63,7 +62,7 @@
 </a-entity>
 
 <!-- ============================================================
-     Example 3 — the second bundled target, with a palette to match
+     Example 3 — the second example target, with a palette to match
      its own tones instead of Example 2's. Nothing else about the
      component changes — `target` and the three colors are the only
      attributes that vary between "themes."

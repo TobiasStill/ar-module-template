@@ -1,13 +1,37 @@
 # Proximity-fade feature guide
 
+<!-- overview -->
+## Overview
+
+Makes objects appear and disappear depending on how close the visitor is
+to a certain spot. Approaching, a model slowly materialises out of thin
+air; come even closer and it can dissolve again — like a ghost that is
+only visible from the right distance. Fading in and fading out can be used
+alone or together. Two looks are available: a smooth, glassy fade, or a
+grainy "screen door" fade that stays clean when several see-through
+objects overlap.
+
+<!-- /overview -->
+
+## Technical summary
+
 Fades a model's opacity in and/or out as the camera approaches a configurable
 target point — two independent, order-independent ramps (fade-in, fade-out)
 that combine into one appear-then-disappear "window." Two interchangeable
 rendering techniques (real alpha transparency vs. dithered opaque-pass) share
-one implementation. Ported from `Madleen_module`; **not** the same feature as
-proximity-cutout (see `PROXIMITY-CUTOUT-FEATURE-GUIDE.md`) — they look
-related but do different things and have separate guides, per the project's
+one implementation. **Not** the same feature as proximity-cutout (see
+`PROXIMITY-CUTOUT-FEATURE-GUIDE.md`) — they look related but do different
+things and have separate guides, per the project's
 `ADDING-FEATURES-WORKFLOW.md` workflow.
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Madleen_module`, which already split the feature into the
+three files described in §3. The port made the fade ranges
+order-independent (see §3).
+
+<!-- /project-specific -->
 
 Files:
 
@@ -16,7 +40,7 @@ src/a-frame-components/
   proximity-fade-shared.ts   # not a component: the shared schema/ramp/target logic
   proximity-fade.ts           # real alpha-blended transparency variant
   proximity-fade-dither.ts     # dithered opaque-pass transparency variant
-src/manifest.ts               # registers proximity-fade + proximity-fade-dither
+(registered automatically by file name — nothing to add to src/manifest.ts)
 examples/
   proximity-fade-usage.html    # scene wiring + full attribute reference
 ```
@@ -32,26 +56,12 @@ on whatever `gltf-model`s you already have in your scene.
    already follow this template's `proximity-fade*` naming convention (see
    `src/manifest.ts`'s naming-convention comment) — nothing to rename.
 
-2. **Register the two real components** in your project's `src/manifest.ts`:
-
-   ```ts
-   import proximityFade from "./a-frame-components/proximity-fade";
-   import proximityFadeDither from "./a-frame-components/proximity-fade-dither";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "proximity-fade": proximityFade,
-       "proximity-fade-dither": proximityFadeDither
-     }
-   };
-   ```
-
-   `proximity-fade-shared.ts` is **not** registered — it has no default
-   export; it's imported directly by the other two (`import {
-   createProximityFadeComponent, MaterialPatcher } from
-   "./proximity-fade-shared"`), not by `manifest.ts`.
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Wire it onto a transform entity** wrapping one or more `gltf-model`
    children — see [2. Entities & attributes](#2-entities--attributes) or
@@ -99,9 +109,8 @@ See `examples/proximity-fade-usage.html` for four worked examples
 
 ### Why keep three files, not merge into one component with a `method` attribute
 
-This was reconsidered explicitly during the port (the source branch had
-already split it this way; the question was whether to keep that or collapse
-it). **Kept as three files** — collapsing was rejected:
+Collapsing the three files into one component with a `method` attribute
+was considered and rejected:
 
 - `proximity-fade-shared.ts` already **is** the deduplication: it's a
   factory, `createProximityFadeComponent(patcher)`, holding 100% of the
@@ -131,29 +140,16 @@ If a third rendering technique is ever needed, add one more small
 `MaterialPatcher` + one more `createProximityFadeComponent(patcher)` call —
 that's the whole extension point.
 
-### The fade-in/fade-out order-independence fix
-
-**This was fixed during the port** — worth being explicit about, since the
-behavior differs from the original `Madleen_module` source. The original
-`tick()` computed:
-
-```ts
-const fadeIn = rampFactor(dist, data.fadeInStart, data.fadeInEnd);
-const fadeOut = rampFactor(dist, data.fadeOutEnd, data.fadeOutStart);
-```
+### Fade-in/fade-out order independence
 
 `rampFactor(dist, distAtZero, distAtOne)` maps `distAtZero → 0`,
-`distAtOne → 1`. This only produces the intended fade direction if the
-caller passes the **farther** distance as `fadeInStart` and the **nearer**
-as `fadeInEnd` (and, confusingly, the opposite argument order for fade-out).
-Every usage in `Madleen_module`'s own `ArModule.vue` happens to follow that
-convention correctly, so it never visibly broke there — but nothing enforces
-it, and swapping which number goes in `fadeInStart` vs. `fadeInEnd` silently
-**inverts** that ramp (the object would fade in as the camera moves *away*
-instead of *toward* it), with no warning.
-
-The universalized version resolves each ramp's own far/near anchor from the
-actual values instead of trusting attribute position:
+`distAtOne → 1`. Passing the attributes to it by position would only
+produce the intended fade direction if the author always put the
+**farther** distance in `fadeInStart` and the **nearer** in `fadeInEnd`
+(and the opposite for fade-out) — swapping them would silently **invert**
+the ramp (fading in as the camera moves *away*). So the component resolves
+each ramp's own far/near anchor from the actual values instead of trusting
+attribute position:
 
 ```ts
 const fadeInFar = Math.max(data.fadeInStart, data.fadeInEnd);
@@ -171,12 +167,27 @@ Now `fadeInStart: 4; fadeInEnd: 6` and `fadeInStart: 6; fadeInEnd: 4` behave
 order" means in practice: the ramp direction comes from comparing the two
 numbers, never from which attribute name holds which one.
 
-What this fix does **not** change: fade-in and fade-out remain two
-genuinely different effects (opposite near/far → opacity mappings by
-design, not swappable with each other), each fully independent (defaulting
-to a true no-op at `0`/`0`), multiplying together exactly as before. See the
-next section for why that multiplication can't glitch regardless of how the
-two ranges relate.
+Fade-in and fade-out remain two genuinely different effects (opposite
+near/far → opacity mappings by design, not swappable with each other), each
+fully independent (defaulting to a true no-op at `0`/`0`), multiplied
+together. See the next section for why that multiplication can't glitch
+regardless of how the two ranges relate.
+
+<!-- project-specific -->
+#### Project context: `Madleen_module`
+
+Order independence was added during the port — the behavior differs from
+the original `Madleen_module` source, whose `tick()` computed:
+
+```ts
+const fadeIn = rampFactor(dist, data.fadeInStart, data.fadeInEnd);
+const fadeOut = rampFactor(dist, data.fadeOutEnd, data.fadeOutStart);
+```
+
+Every usage in `Madleen_module`'s own `ArModule.vue` happens to follow the
+far-then-near convention, so it never visibly broke there.
+
+<!-- /project-specific -->
 
 ### Multiplying ramps: verified glitch-free for any overlap
 
@@ -203,7 +214,7 @@ two ranges:
 
 A degenerate ramp (its two resolved values equal) is handled as a hard step
 (`dist >= that value ? 1 : 0`) rather than dividing by zero — unaffected by
-the order-independence fix above, since `Math.max`/`Math.min` of two equal
+the order independence above, since `Math.max`/`Math.min` of two equal
 numbers is just that number.
 
 ### `target` and distance tracking
@@ -232,6 +243,13 @@ scene) doesn't leave materials permanently altered.
 
 ## 4. Incompatibilities, risks & troubleshooting
 
+### Grain Shimmer chains, doesn't replace
+
+[`grain-shimmer`](GRAIN-SHIMMER-FEATURE-GUIDE.md) clones the material and
+chains an `onBeforeCompile` patch that is already on it. If this component
+patches *after* grain-shimmer (replacing `onBeforeCompile`), the grain is
+lost — set grain-shimmer last.
+
 ### `proximity-fade-dither` vs. `proximity-cutout` on the *same* material
 
 **Read this if a project ever nests both around the same `gltf-model`.**
@@ -247,14 +265,11 @@ restore the earlier patch, since each component's `remove()` restores to
 what it found at patch time — but while both are live, only one effect
 actually renders.)
 
-`Madleen_module`'s own scene doesn't hit this today (`proximity-cutout` and
-the `proximity-fade*` variants there wrap *different* model instances, even
-though a couple of the same model **ids** appear under both — see the next
-note), but it's a real risk for any new scene that intentionally wants both
-effects on the same object. If you need both cutout and fade on the same
-model, they'll need to be composed deliberately (e.g. one component chaining
-into the other's `onBeforeCompile` rather than replacing it) — not supported
-out of the box by either component as ported.
+It's a real risk for any scene that intentionally wants both effects on the
+same object. If you need both cutout and fade on the same model, they'll
+need to be composed deliberately (e.g. one component chaining into the
+other's `onBeforeCompile` rather than replacing it) — not supported out of
+the box by either component.
 
 ### Multiple entities referencing the same model id
 
@@ -265,13 +280,22 @@ your scene end up sharing the *same* underlying `Material` instance (and
 therefore fighting over these mutations) or get independent ones depends on
 A-Frame/three.js's glTF loading/caching behavior for the pinned A-Frame
 version — not something re-verified against this project's exact dependency
-versions while writing this guide. `Madleen_module`'s real scene *does* use
-the same model ids (e.g. `#Aussen2`, `#Aussen5`) under several differently-
-configured `proximity-fade`/`proximity-cutout` wrappers simultaneously, with
-no reported problem — but if a new project applies **different**
+versions while writing this guide. If a project applies **different**
 fade/cutout configs to multiple entities that reference the same model id,
 **verify directly** that they animate independently rather than in lockstep
 before relying on it.
+
+<!-- project-specific -->
+#### Project context: `Madleen_module`
+
+`Madleen_module`'s real scene uses the same model ids (e.g. `#Aussen2`,
+`#Aussen5`) under several differently-configured
+`proximity-fade`/`proximity-cutout` wrappers simultaneously, with no
+reported problem; `proximity-cutout` and the `proximity-fade*` variants
+there wrap *different* model instances, so the same-material collision
+above doesn't occur.
+
+<!-- /project-specific -->
 
 ### Interaction with the sound feature already on this branch
 
@@ -304,8 +328,8 @@ and is never touched by this feature regardless of scene nesting.
 
 ### Interaction with LOD + Billboard's dithered fade
 
-Same category of risk as the `proximity-cutout` one above, found while
-porting that feature (see `LOD-BILLBOARD-FEATURE-GUIDE.md`): an
+Same category of risk as the `proximity-cutout` one above (see
+`LOD-BILLBOARD-FEATURE-GUIDE.md`): an
 `lod-object`'s `data-lod-dither` part also patches `material.onBeforeCompile`
 + `customProgramCacheKey`. Nest `proximity-fade`/`-dither` and a dithered
 LOD part around the exact same `gltf-model` and only one of the two

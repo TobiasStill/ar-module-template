@@ -1,0 +1,77 @@
+<!--
+  GESTURES — usage & wiring examples
+  ====================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from (into ArModule.vue's <template>).
+
+  Components involved:
+    gesture-control   (src/a-frame-components/gesture-control.ts)
+                      Drag + rotate + pinch-scale on one entity, configured
+                      in one attribute. Sets hold-drag and xrextras'
+                      one/two-finger-rotate and pinch-scale on the SAME
+                      entity (and removes them again).
+    hold-drag         (src/a-frame-components/hold-drag.ts)
+                      Usable on its own too: hold, then drag along the
+                      ground. Works inside transformed parents (unlike
+                      xrextras-hold-drag), accepts xrextras-hold-drag's
+                      schema (groundId) unchanged.
+
+  Requirements (both met by the host and lib/preview-ar.ts, nothing to do):
+    - xrextras-gesture-detector on <a-scene> (gesture events),
+    - the camera's cursor/raycaster hitting .cantap (the drag press).
+
+  Rotate and pinch react to two-finger gestures ANYWHERE on screen — every
+  entity with them turns/scales together. One gesture-control per scene
+  (or per group). Put it on the model itself: pinch scales around the
+  entity's own origin.
+-->
+
+<!-- ============================================================
+     Example 1 — all three gestures with defaults, inside a placed
+     scene (place-in-front on the parent, gestures on the child —
+     both write the transform, so never on the same entity).
+     ============================================================ -->
+<a-entity place-in-front="distance: 2">
+  <a-entity gltf-model="#Sculpture" gesture-control></a-entity>
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — swipe with one finger to rotate, no dragging,
+     scale limited to half/double size.
+     ============================================================ -->
+<a-entity gltf-model="#Sculpture"
+          gesture-control="rotate: one-finger; drag: false; minScale: 0.5; maxScale: 2">
+</a-entity>
+
+<!-- ============================================================
+     Example 3 — drag over a specific ground entity, lifted 0.2 m
+     while dragged.
+     ============================================================ -->
+<a-plane id="stage" rotation="-90 0 0" width="4" height="4" material="shader: shadow"></a-plane>
+<a-entity gltf-model="#Sculpture" gesture-control="ground: #stage; riseHeight: 0.2"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  gesture-control
+    drag          boolean  true          Hold, then drag along the ground (hold-drag).
+    rotate        string   two-finger    none | one-finger | two-finger.
+    scale         boolean  true          Pinch to scale.
+    ground        string   ""            Selector of the ground entity. Empty =
+                                         the parent's y = 0 plane.
+    riseHeight    number   1             Height while dragged (parent units).
+    dragDelay     number   300           ms to hold before the drag starts.
+    rotateFactor  number   5             Rotation per finger travel.
+    minScale      number   0.33          Pinch limits, relative to the scale
+    maxScale      number   3             the entity had when gesture-control
+                                         was set.
+
+  hold-drag (direct use)
+    ground      selector  —     Ground entity (else the parent's y = 0 plane).
+    groundId    string    ""    xrextras-hold-drag compatibility: ground by id.
+    cameraId    string    ""    xrextras-hold-drag compatibility: ignored (the
+                                scene's active camera is used).
+    dragDelay   number    300
+    riseHeight  number    1
+-->

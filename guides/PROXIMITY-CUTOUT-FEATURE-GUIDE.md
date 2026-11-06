@@ -1,8 +1,22 @@
 # Proximity-cutout feature guide
 
+<!-- overview -->
+## Overview
+
+Lets visitors walk into solid objects. As they come close to a wall, a
+rock or a building, a round hole opens up in it right where they are —
+with a soft, grainy edge, like a hole burned into paper — so they can
+look and step inside instead of the camera bumping into the surface or
+suddenly slicing through it. The hole moves with them and closes again
+behind them as they step back out.
+
+<!-- /overview -->
+
+## Technical summary
+
 Opens a dithered hole in a model centred on the camera as the camera
 approaches, letting the camera "cut into" the model instead of clipping
-through it or being blocked by it. Ported from `Madleen_module`. A separate
+through it or being blocked by it. A separate
 feature from proximity-fade (see `PROXIMITY-FADE-FEATURE-GUIDE.md`) — they
 look related (both are camera-distance-driven material effects) but do
 different things, take different attributes, and have separate guides, per
@@ -10,11 +24,19 @@ this project's `ADDING-FEATURES-WORKFLOW.md` workflow. Read
 [4](#4-incompatibilities-risks--troubleshooting) below if a scene ever
 combines the two on the same model.
 
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Madleen_module`; the port hardened the patch/restore lifecycle
+(see §3).
+
+<!-- /project-specific -->
+
 Files:
 
 ```
 src/a-frame-components/proximity-cutout.ts   # the whole feature — one file
-src/manifest.ts                               # registers proximity-cutout
+(registered automatically by file name — nothing to add to src/manifest.ts)
 examples/proximity-cutout-usage.html           # scene wiring + attribute reference
 ```
 
@@ -27,19 +49,12 @@ whatever `gltf-model`s you already have in your scene.
    `src/a-frame-components/`. No path changes; already named per this
    template's convention (nothing to rename).
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import proximityCutout from "./a-frame-components/proximity-cutout";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "proximity-cutout": proximityCutout
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Wire it onto a transform entity** wrapping one or more `gltf-model`
    children — see [2. Entities & attributes](#2-entities--attributes) or
@@ -96,28 +111,38 @@ those attributes live takes effect immediately) and the camera-position
 uniform driving `uCenter` — it doesn't re-run the shader patch itself, which
 only happens once per material.
 
-### Patch/restore lifecycle (hardened during the port)
+### Patch/restore lifecycle
 
-**This was fixed during the port.** The original `Madleen_module` version
-patched materials on `model-loaded` but never undid it in `remove()` — it
-only removed the event listener and cleared its own `materials` array,
-leaving every patched `Material` object permanently running the cutout
-shader (`onBeforeCompile`, `customProgramCacheKey`, the flipped `side`) even
-after the component itself was gone. That's invisible in a scene that never
-adds/removes a `proximity-cutout` entity dynamically (which is how
-`Madleen_module` uses it — the entity exists for the module's whole
-lifetime), but it's a real gap for any project that toggles this on/off at
-runtime.
-
-The universalized version snapshots each material's `onBeforeCompile`,
+The component snapshots each material's `onBeforeCompile`,
 `customProgramCacheKey`, and `side` the first time it's patched, and
-`remove()` now restores all three — mirroring the `MaterialPatcher.restore`
-pattern `proximity-fade-shared.ts` already used. It also now guards against
-patching the same material twice (relevant if `model-loaded` fires more than
-once for a shared material instance), matching the same guard
-`proximity-fade-shared.ts` already had.
+`remove()` restores all three — mirroring the `MaterialPatcher.restore`
+pattern of `proximity-fade-shared.ts`. Without that, every patched
+`Material` would keep running the cutout shader after the component is
+gone — invisible in a scene whose cutout entity lives for the module's
+whole lifetime, but a real gap for any project that toggles this on/off at
+runtime. It also guards against patching the same material twice
+(relevant if `model-loaded` fires more than once for a shared material
+instance), like `proximity-fade-shared.ts`.
+
+<!-- project-specific -->
+#### Project context: `Madleen_module`
+
+The restore and the double-patch guard were added during the port. The
+original `Madleen_module` version patched materials on `model-loaded` but
+never undid it in `remove()` — it only removed the event listener and
+cleared its own `materials` array. That went unnoticed there because the
+entity exists for the module's whole lifetime.
+
+<!-- /project-specific -->
 
 ## 4. Incompatibilities, risks & troubleshooting
+
+### Grain Shimmer chains, doesn't replace
+
+[`grain-shimmer`](GRAIN-SHIMMER-FEATURE-GUIDE.md) clones the material and
+chains an `onBeforeCompile` patch that is already on it. If this component
+patches *after* grain-shimmer (replacing `onBeforeCompile`), the grain is
+lost — set grain-shimmer last.
 
 ### `proximity-cutout` vs. `proximity-fade`/`-dither` on the *same* material
 
@@ -129,21 +154,28 @@ whatever was already there. If a `proximity-cutout` wrapper and a
 same `gltf-model` (so both receive its `model-loaded` event and both patch
 the same material object), whichever patches **last** wins — the other
 effect is silently inactive on that material while both components stay
-mounted. Since each component's `remove()` now correctly restores whatever
+mounted. Since each component's `remove()` restores whatever
 it found at patch time (see [3](#3-under-the-hood)), removing whichever
 patched last does bring the earlier one's effect back — but while both are
 live, you only get one.
+
+If a project intentionally wants both a cutout and a fade effect on the
+very same object, that isn't supported out of the box by either component —
+it would need deliberate composition (chaining into the existing
+`onBeforeCompile` rather than replacing it). Separate entities referencing
+the same model id are a grey zone — see the next note.
+
+<!-- project-specific -->
+#### Project context: `Madleen_module`
 
 `Madleen_module`'s real scene doesn't hit this — `proximity-cutout` wraps
 `#Aussen1`/`#Aussen5`, while the `proximity-fade`/`-dither` variants there
 wrap separate entities referencing `#Aussen2`/`#Aussen3`/`#Aussen4`/`#Aussen5`
 — but note `#Aussen5` appears under *both* a `proximity-cutout` wrapper and
-a `proximity-fade` wrapper in that scene, on what are presumably (see the
-next note) separate entity/material instances rather than one shared
-material patched twice. If a new project intentionally wants both a cutout
-and a fade effect on the very same object, that isn't supported out of the
-box by either component as ported — it would need deliberate composition
-(chaining into the existing `onBeforeCompile` rather than replacing it).
+a `proximity-fade` wrapper in that scene, on what are presumably separate
+entity/material instances rather than one shared material patched twice.
+
+<!-- /project-specific -->
 
 ### Multiple entities referencing the same model id
 
@@ -172,8 +204,8 @@ versa).
 
 ### Interaction with LOD + Billboard's dithered fade
 
-Same category of risk as the `proximity-fade` one above, found while
-porting the LOD feature (see `LOD-BILLBOARD-FEATURE-GUIDE.md`): an
+Same category of risk as the `proximity-fade` one above (see
+`LOD-BILLBOARD-FEATURE-GUIDE.md`): an
 `lod-object`'s `data-lod-dither` part also patches `material.onBeforeCompile`
 + `customProgramCacheKey`. Nest `proximity-cutout` and a dithered LOD part
 around the exact same `gltf-model` and only one of the two effects renders
@@ -194,5 +226,4 @@ mental model in
   outside its documented domain (its low edge needs to be below its high
   edge) — not validated/clamped by the component, so an out-of-range
   `feather` may render incorrectly rather than erroring. The defaults
-  (`radius: 12; feather: 5`) and every value used in `Madleen_module`'s own
-  scene are well inside this range.
+  (`radius: 12; feather: 5`) are well inside this range.

@@ -1,5 +1,40 @@
 # Render order & transparency guide
 
+<!-- overview -->
+## Introduction
+
+A phone draws an AR scene anew many times per second, one object after
+another, like a painter adding layers to a canvas. For solid objects the
+order hardly matters: the phone remembers, for every point on the screen,
+how far away the nearest thing already painted there is, and simply skips
+anything that would lie behind it.
+
+See-through things — glass, smoke, glowing veils, objects fading in or
+out — are harder. To look right, whatever lies behind them has to be
+painted *first*, and they are painted on top, letting it shine through.
+So the phone paints all solid objects first, then all see-through ones,
+from the farthest to the nearest. Usually that works. But when
+see-through objects overlap, interlock or are about equally far away, the
+phone can pick the wrong order: parts flicker, vanish behind each other,
+or suddenly swap places as the visitor moves.
+
+There are two ways out. One is to tell the phone explicitly in which order
+to paint certain objects ("render order") — like numbering transparent
+slides before stacking them. The other is to avoid real transparency
+altogether and fake it with a fine pattern of solid dots and holes
+("dithering", like a screen door or a newspaper photo) — a dotted object
+counts as solid, so the order problem disappears, at the price of a
+grainy look.
+
+Several features of the template work with these mechanisms — some sort,
+some fade, some rewrite how a surface is drawn. Each works fine alone; this
+guide explains what happens when they meet on the same object, and which
+combinations to avoid.
+
+<!-- /overview -->
+
+## About this guide
+
 A cross-feature reference for how three.js actually resolves overlapping
 transparent surfaces, and where the sharp edges are when combining
 [Render Order](../guides/RENDER-ORDER-FEATURE-GUIDE.md),
@@ -8,11 +43,17 @@ transparent surfaces, and where the sharp edges are when combining
 [Material Properties](../guides/MATERIAL-PROPERTIES-FEATURE-GUIDE.md),
 [Dither Material](../guides/DITHER-MATERIAL-FEATURE-GUIDE.md),
 or any other feature that patches materials (`proximity-fade`,
-`proximity-cutout`) in the same scene. Adapted and generalized from an
-internal engineering doc written on `Gyumin_production` (source branch:
-`Gyumin_module`) — the original was written for one specific "concert
-lightstick field" project; this version keeps the technical content and
-drops everything specific to that project's assets/naming.
+`proximity-cutout`) in the same scene.
+
+<!-- project-specific -->
+### Project context: origin
+
+Adapted and generalized from an internal engineering doc written on
+`Gyumin_production` (source branch: `Gyumin_module`) for one specific
+"concert lightstick field" project; this version keeps the technical
+content and drops everything specific to that project's assets/naming.
+
+<!-- /project-specific -->
 
 This isn't a feature guide on its own — it exists because several of the
 sharp edges below aren't obvious from reading any single component in
@@ -279,8 +320,7 @@ parent's own component updates. This is why an `lod-object`'s required
 markup *before* the entity carrying `lod-object` — `lod-object.init()`
 does `querySelectorAll('.lod-mesh')` and needs every child already in the
 DOM. In plain authored markup this is automatic; if you ever build this
-structure programmatically (the way the source branch's field-population
-component used to), the outer `lod-object` attribute must be set *last*,
+structure programmatically, the outer `lod-object` attribute must be set *last*,
 after every child is appended, or the query returns an empty list.
 
 ### 5.2 Multiple components mutating `node.material` on the same element — order matters
@@ -325,3 +365,14 @@ in `el.components` means "ready."
 | [`material-properties`](../guides/MATERIAL-PROPERTIES-FEATURE-GUIDE.md) or `dither-material` alongside `unlit-material` | Don't put either on the same entity as `unlit-material` (§4.5) — same replace-vs-tune conflict as the proximity features above. |
 | `material-properties` alongside `dither-material` | Both clone-then-mutate (not replace), so combining is supported — but same-element registration order decides who tunes whose output (§5.2). Author `material-properties` first if you want its values to be what gets dithered. |
 | Adding any new material-mutating component | Ask: does it run on the same element as another material-mutating component? If yes, registration order decides who sees whose output (§5.2) — make that explicit in a comment. |
+
+## Portal
+
+[`portal`](../guides/PORTAL-FEATURE-GUIDE.md) pins its own draw order with
+`renderOrder`: hider walls, portal wall and door 1, contents 2, everything
+else 0. Hider materials (`xrextras-hider-material`, depth only) mask only
+what is drawn after them; three r137 (8frame 1.3, the host) sorts opaque
+objects by material id and r158 (8frame 1.5) by distance, so without the
+pinned order a portal flickers with camera movement. Render Order / Mesh
+Render Order / LOD values inside a portal subtree are overwritten by it.
+

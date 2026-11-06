@@ -1,26 +1,47 @@
 # Material properties feature guide
 
+<!-- overview -->
+## Overview
+
+Changes how a model's surface looks without opening a 3D program: make a
+dull statue shiny like polished metal, turn a solid object half
+see-through like frosted glass, or make a glowing part glow brighter or in
+a different colour. The model keeps reacting to the scene's light as
+before — only the chosen properties are adjusted, the rest of its look
+stays exactly as the artist made it.
+
+<!-- /overview -->
+
+## Technical summary
+
 Manually tunes a loaded model's PBR material properties — roughness,
 metalness, opacity, and emissive intensity/tint — directly on whatever
 material the glTF/primitive already has (typically `MeshStandardMaterial`),
 without discarding it the way [unlit-material](LOD-BILLBOARD-FEATURE-GUIDE.md#unlit-material)
 does. Applicable to any entity — a `gltf-model` or a plain A-Frame primitive.
 
-Combines two needs that don't exist anywhere else in this project's source
-branches into one component, rather than shipping them separately — see
-[3. Under the hood](#3-under-the-hood) for why:
+Combines two needs into one component, rather than shipping them
+separately — see [3. Under the hood](#3-under-the-hood) for why:
 
-1. **Manual roughness/metalness/opacity control.** No equivalent existed in
-   any `_module` branch — the closest thing found was `Gyumin_module`'s
-   `camera-reflection.ts` (a dead/unregistered prototype), which hardcodes
-   `metalness = 1; roughness = 0` for one specific chrome-mirror effect
-   rather than exposing them as general-purpose attributes.
-2. **Emissive glow tuning**, ported from `Gyumin_module`'s
-   `emissive-material.ts` (`intensity`/`tint` attributes here renamed to
-   `emissiveIntensity`/`emissiveTint`, since this component also covers
-   unrelated properties where a bare "intensity" would be ambiguous), plus a
-   real `KHR_materials_emissive_strength` extension workaround — see
+1. **Manual roughness/metalness/opacity control.**
+2. **Emissive glow tuning** (`emissiveIntensity`/`emissiveTint` — prefixed,
+   since this component also covers unrelated properties where a bare
+   "intensity" would be ambiguous), plus a real
+   `KHR_materials_emissive_strength` extension workaround — see
    [3](#3-under-the-hood).
+
+<!-- project-specific -->
+### Project context: origin
+
+Manual roughness/metalness/opacity control had no equivalent in any
+`_module` branch — the closest thing found was `Gyumin_module`'s
+`camera-reflection.ts` (a dead/unregistered prototype), which hardcodes
+`metalness = 1; roughness = 0` for one specific chrome-mirror effect.
+Emissive tuning is ported from `Gyumin_module`'s `emissive-material.ts`,
+whose `intensity`/`tint` attributes were renamed to
+`emissiveIntensity`/`emissiveTint`.
+
+<!-- /project-specific -->
 
 Files:
 
@@ -39,19 +60,12 @@ not here (see [4](#4-incompatibilities-risks--troubleshooting)).
 1. **Copy the file** — `material-properties.ts` — into your project's own
    `src/a-frame-components/`. No path changes, no data files.
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import materialProperties from "./a-frame-components/material-properties";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "material-properties": materialProperties
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Wire it into the scene** — see
    [2. Entities & attributes](#2-entities--attributes) or copy directly
@@ -71,7 +85,7 @@ not here (see [4](#4-incompatibilities-risks--troubleshooting)).
 | `opacity` | number | `-1` (don't override) | `>= 0` forces `material.opacity`. If the resulting value is `< 1`, also forces `material.transparent = true` (opacity alone does nothing visually unless the material is flagged transparent) — left untouched if the value is `>= 1`. |
 | `emissiveIntensity` | number | `1` | Multiplier on top of the *resolved* emissive intensity (see [3](#3-under-the-hood) for what "resolved" means) — `1` = no change. |
 | `emissiveTint` | color | `""` (none) | Hex colour multiplied into the emissive colour. |
-| `disableShadow` | boolean | `false` | Forces `castShadow`/`receiveShadow` off. Off by default — see [3](#3-under-the-hood) for why this isn't the source's original unconditional behaviour. |
+| `disableShadow` | boolean | `false` | Forces `castShadow`/`receiveShadow` off. Off by default — see [3](#3-under-the-hood) for why. |
 
 ```html
 <a-entity gltf-model="#Statue" material-properties="metalness: 1; roughness: 0.1"></a-entity>
@@ -111,9 +125,9 @@ components doing that independently would double the clone/traversal cost
 per apply and double the same-element registration-order surface
 documented in
 [RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md §5.2](../cross-feature-reference-docs/RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md#52-multiple-components-mutating-nodematerial-on-the-same-element--order-matters)
-for no real benefit — the same reasoning `unlit-material`'s own attribute
-set (`keepEmissive`/`brightness`/`tint`/`alphaTest`/`keepShadowBehavior`)
-already grew from across two separate ports.
+for no real benefit — the same reasoning behind `unlit-material`'s own
+combined attribute set (`keepEmissive`/`brightness`/`tint`/`alphaTest`/
+`keepShadowBehavior`).
 
 ### Clone ownership, and why it matters for `update()`
 
@@ -152,22 +166,37 @@ values on `material.userData.gltfExtensions` instead of applying them, so
 `emissiveIntensity` silently stays at its `1.0` default and the glow reads
 as dim/flat rather than the boosted brightness the artist authored. This is
 reapplied by hand from the preserved raw data, unconditionally — a
-correctness fix, not an opt-in behaviour, exactly matching the source
-component's own logic.
+correctness fix, not an opt-in behaviour.
 
-### `disableShadow` defaults to `false`, unlike the source
+### `disableShadow` defaults to `false`
+
+Turning shadows off is right for a glowing "light-emitting" part (it
+shouldn't cast a shadow of its own light), but wrong as a silent default
+for a *generic* material-tuning component — tuning metalness/roughness on
+an ordinary shadow-casting statue should not also turn its shadow off. So
+it is an explicit opt-in, defaulting to leaving shadow behaviour untouched.
+
+<!-- project-specific -->
+#### Project context: `Gyumin_module`
 
 The source `emissive-material.ts` always forced `castShadow`/
-`receiveShadow` off unconditionally — correct for its one specific use case
-(a glowing "light-emitting" part shouldn't cast a shadow of its own light),
-but wrong as a silent default for a *generic* material-tuning component
-(e.g. tuning metalness/roughness on an ordinary shadow-casting statue
-should obviously not also turn its shadow off). This port makes it an
-explicit opt-in instead, defaulting to leaving shadow behaviour untouched —
-the least-surprising default for the broader audience this component is
-meant to serve.
+`receiveShadow` off unconditionally — correct for its one use case (glow
+parts). The port made it the opt-in `disableShadow`. The
+`KHR_materials_emissive_strength` handling matches the source component's
+own logic exactly.
+
+<!-- /project-specific -->
 
 ## 4. Incompatibilities, risks & troubleshooting
+
+### Env maps from Light & Reflections
+
+[`cubemap-static`/`cubemap-realtime`](LIGHT-REFLECTIONS-FEATURE-GUIDE.md) write
+`envMap` onto (cloned) materials. This component swaps in new material
+objects: an env map applied *before* is carried along by `clone()`, one
+applied after works on the new materials. Re-set the cubemap attribute
+after a swap if the reflection disappears (found while adding Light &
+Reflections).
 
 ### Real conflict with `unlit-material` — do not combine on the same entity
 

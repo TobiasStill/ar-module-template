@@ -1,0 +1,78 @@
+<!--
+  PORTAL — usage & wiring examples
+  ==================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/portal.ts):
+    portal   On the entity whose origin is the door (door plane = its z = 0,
+             outside = +z). Children: `walls` (hider boxes around the inside
+             world), optional `door` (hider ring that opens), optional
+             `portalWall` (hider shape at the door, seen from inside),
+             `contents` (the inside world).
+
+  xrextras-hider-material (from xrextras, loaded by the host and previews)
+  writes depth but no colour: the camera image shows through, and anything
+  drawn after it behind it is hidden. The portal component pins the draw
+  order so that's reliable.
+-->
+
+<!-- ============================================================
+     Example 1 — a door 4 m in front of the viewer into a
+     panorama video world, opened with a springy ring animation
+     from a Start tap; a small round window back to the real world
+     from inside.
+     ============================================================ -->
+<a-entity place-in-front="distance: 4">
+  <a-entity id="my-portal"
+            portal="contents: #inside; walls: #hiders; door: #door; portalWall: #window-back;
+                    width: 2; height: 2.5; openRadius: 1">
+
+    <!-- Hider box around the inside (everything behind the door plane). -->
+    <a-entity id="hiders">
+      <a-box scale="20 0.1 20"  position="0 -0.05 -10" xrextras-hider-material></a-box>
+      <a-box scale="20 20 0.1"  position="0 10 -20"    xrextras-hider-material></a-box>
+      <a-box scale="20 0.1 20"  position="0 20 -10"    xrextras-hider-material></a-box>
+      <a-box scale="0.1 20 20"  position="-10 10 -10"  xrextras-hider-material></a-box>
+      <a-box scale="0.1 20 20"  position="10 10 -10"   xrextras-hider-material></a-box>
+    </a-entity>
+
+    <!-- The door: a hider disc covering the doorway; portal-open
+         springs its inner radius open. -->
+    <a-ring id="door" radius-inner="0.001" radius-outer="20" position="0 1.2 -0.02"
+            xrextras-hider-material></a-ring>
+
+    <!-- From inside: a hider disc at the door keeps a window back out. -->
+    <a-entity id="window-back">
+      <a-circle radius="0.9" rotation="0 180 0" position="0 1.2 0" xrextras-hider-material></a-circle>
+    </a-entity>
+
+    <!-- The world behind the door. -->
+    <a-entity id="inside">
+      <a-videosphere src="#PanoramaVideo" rotation="0 -90 0" radius="15"
+                     video-control="video: #PanoramaVideo"></a-videosphere>
+      <a-entity gltf-model="#Treadmill" position="2 0 -5"></a-entity>
+    </a-entity>
+  </a-entity>
+</a-entity>
+<!-- Start tap:
+       document.getElementById('my-portal').emit('portal-open');
+       document.querySelector('a-scene').emit('video-play');      -->
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+    width / height    number    10 / 10   Doorway size (local units): |x| < width/2, y < height.
+    contents          selector  —         The inside world.
+    walls             selector  —         Hider walls masking the inside from outside.
+    portalWall        selector  —         Hider shape shown only from inside (optional).
+    door              selector  —         Hider ring opened by portal-open (optional).
+    openRadius        number    5         Ring inner radius when open.
+    openDuration      number    1500      ms.
+    openEasing        string    easeOutElastic
+    hiderOrder        number    1         renderOrder of walls, portalWall, door.
+    contentsOrder     number    2         renderOrder of contents.
+
+    Events in:   portal-open, portal-close
+    Events out:  portal-enter, portal-exit
+-->

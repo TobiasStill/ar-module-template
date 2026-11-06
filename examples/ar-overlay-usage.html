@@ -1,0 +1,88 @@
+<!--
+  AR OVERLAY — copy/paste integration example (Vue SFC syntax)
+  ==============================================================
+  Not compiled or served by anything in this project — reference code to
+  copy into a real src/ArModule.vue.
+
+  Files involved (both in src/, nothing to register in manifest.ts):
+    src/ArOverlay.vue        The overlay component: a centre column of
+                             controls (hint text, Start/Play buttons, …) and
+                             an optional recenter button.
+    src/ar-overlay-icons.ts  Inline SVG icons (recenter, close, tap-on-cursor)
+                             and actionButtonHtml() for a filled button label.
+
+  Where each piece goes in ArModule.vue:
+    1. The <script setup> block: the import and the `controls` array.
+    2. The <template>: <ArOverlay> as a sibling of the module's root
+       <a-entity> (a 2D overlay, not part of the 3D scene), next to the
+       loading bar/spinner divs that are already there.
+    3. The scene: an entity with place-in-front (id = place-target) if the
+       overlay should wait for the placement and offer a recenter button —
+       see examples/placement-usage.html.
+
+  Inline styles only (a module's <style> block never reaches the host). The
+  recenter button sits 64px from the top right, below the host app's own
+  recalibrate-north button.
+-->
+
+<!-- 1. <script setup lang="ts"> additions -->
+<script setup lang="ts">
+import ArOverlay, { type ArOverlayControl } from "./ArOverlay.vue";
+import { actionButtonHtml } from "./ar-overlay-icons";
+
+const controls: ArOverlayControl[] = [
+  {
+    id: "start",
+    // A hint with a filled Start button underneath; disappears after the tap.
+    html: 'Schau dich um und tippe auf "Start" ' + actionButtonHtml("Start"),
+    onClick: () => {
+      // e.g. re-place the scene where the viewer looks now, show the model:
+      document.getElementById("my-scene")?.dispatchEvent(new CustomEvent("place-in-front-place"));
+      document.getElementById("my-model")?.setAttribute("visible", "true");
+    }
+  },
+  {
+    id: "info",
+    variant: "hint", // close (x) icon top right, dismissed on tap
+    html: "Tippe auf den Boden, um neu zu platzieren"
+  }
+];
+</script>
+
+<!-- 2. <template> additions (sibling of the root <a-entity>) -->
+<template>
+  <ArOverlay
+      place-target="my-scene"
+      :controls="controls"
+      recenter-button
+      :ready="assetsLoaded"
+  />
+</template>
+
+<!-- 3. Scene (inside the root <a-entity>) -->
+<a-entity id="my-scene" place-in-front="distance: 2; tapRecenter: true">
+  <a-entity id="my-model" gltf-model="#Sculpture" visible="false"></a-entity>
+</a-entity>
+
+<!--
+  PROPS
+  =====
+    controls        ArOverlayControl[]  []      Centre column, top to bottom.
+    placeTarget     string              ""      Id of a place-in-front entity:
+                                                overlay waits for its first
+                                                placement; recenter re-places it.
+    recenterButton  boolean             false   Show the recenter button.
+    ready           boolean             true    Overlay hidden while false
+                                                (e.g. assets still loading).
+
+  EVENTS
+    recenter        emitted on every recenter tap (with or without placeTarget)
+
+  ArOverlayControl
+    id        string     unique key
+    html      string     trusted static markup (text, inline <svg>,
+                         actionButtonHtml("Label", "#color"))
+    onClick   () => void optional
+    keep      boolean    true = stays after the tap (default: disappears)
+    variant   "action" | "hint"   hint = with close (x) icon
+-->

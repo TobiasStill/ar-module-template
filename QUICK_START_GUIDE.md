@@ -143,9 +143,9 @@ together is written down.
   the app shows it — check that with `npm run dev:ar`.
 - `npm run dev:ar` — the same, but using your phone's camera for real AR,
   placed exactly as in the app. Phone and computer must be on the same
-  Wi-Fi; open the printed `https://…` link on the phone and accept the
-  security warning (the preview uses its own certificate). If the phone can't
-  reach the link, the network probably blocks devices from seeing each other,
+  Wi-Fi; scan the QR code the command prints with the phone's camera (or open
+  the printed `https://…` link) and accept the security warning (the preview
+  uses its own certificate). If the phone can't reach the link, the network probably blocks devices from seeing each other,
   as many guest networks do: connect the computer to your phone's hotspot and
   try again. Content in `scene-root` stands on the floor in front of you — if
   you don't see it, tilt the phone down. Colours and lighting can look a little

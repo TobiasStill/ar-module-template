@@ -142,6 +142,7 @@ lib/                            host/preview plumbing — not edited by a projec
                                verify three.js-version-sensitive behaviour (colorSpace/encoding, opaque sorting, PMREM) against the host
 scripts/compress-assets.ts     `npm run compress-assets` — interactive mesh/texture compression tool
 scripts/generate-demo-assets.ts  generates the demo files and mirror-shard's shards.json from code
+scripts/dev-qr-code.ts         Vite plugin: prints the network URL as a QR code in dev:ar
 scripts/used-components.ts     scan behind automatic component registration (virtual:used-components in vite.config.ts)
 uncompressed-assets/            gitignored, local-only; pristine originals kept by compress-assets.ts
 *.md (repo root)                general, not-feature-specific docs (this file, workflow, catalog, README, quick-start)

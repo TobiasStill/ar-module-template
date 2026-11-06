@@ -5,6 +5,7 @@ import { fileURLToPath, URL } from "node:url";
 import { readdirSync, readFileSync, existsSync, statSync, renameSync, createReadStream } from "node:fs";
 import { join, parse, extname, sep } from "node:path";
 import { usedComponents } from "./scripts/used-components";
+import { devQrCode } from "./scripts/dev-qr-code";
 
 const ASSETS_SRC = fileURLToPath(new URL("./src/assets", import.meta.url));
 // Image-target files (the JSON + its *_luminance/_cropped/… images) produced by
@@ -247,6 +248,9 @@ export default defineConfig(async ({ command, mode }) => {
         });
       }
     });
+
+    // Prints a QR code of the network address for opening the preview on a phone.
+    plugins.push(devQrCode());
 
     // Standalone AR build: emit the page as index.html (not ar.html) so serving
     // dist-ar/ resolves the AR app at the root. Renamed on disk after the bundle

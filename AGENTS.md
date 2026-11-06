@@ -40,8 +40,10 @@ protected against force-push and deletion):
   almost certainly the branch you are on or should be working toward if
   the task is "add/port/document a feature."
 - `<Name>_module`, `<Name>_production` branches (e.g. `Jakob_module`,
-  `Gyumin_production`) and `abv-*` / `augmented-bahnhofsviertel` — real, one-off
-  student and artist projects. They are no longer in the public repository but in
+  `Gyumin_production`), `abv-*` / `augmented-bahnhofsviertel`, and `sound-player`,
+  `proximity-effekte`, `zwischen-basis`, `host-light-scale`, `ai-asset-tools`,
+  `plant-sandbox` — real, one-off projects and work branches, many by students and
+  artists. They are no longer in the public repository but in
   the **private** `working-on-democracy/ar-module-template-archive`, and most users
   have no access. Without access, `Source` entries and "Project context" notes
   naming them are history only: don't look for them. With access, treat the student

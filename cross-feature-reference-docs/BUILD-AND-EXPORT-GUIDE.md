@@ -23,7 +23,7 @@ register it so it appears at its location.
 Not tied to one feature. Read before the first export, when a module
 behaves differently in the app than in a preview, and before changing
 anything in `lib/` or `vite.config.ts`. Host facts are from
-`TobiasStill/ar-demo-backend` at `0651352`; check the host for changes
+`TobiasStill/ar-demo-backend` at `727ea7a`; check the host for changes
 before relying on them (README "Keeping up with the host"). Where a scene's
 content ends up in space is its own topic:
 [SCENE-PLACEMENT-GUIDE.md](SCENE-PLACEMENT-GUIDE.md).
@@ -48,10 +48,7 @@ Headless checking of `dev:ar` without a phone:
 - **Engine version.** The host runs 8frame 1.3.0 (three.js r137);
   `dev:ar`/`build:ar` run 8frame 1.5.0 (three.js r158). Colour space
   (`colorSpace` vs. `encoding`), the sorting of opaque objects and PMREM
-  updates differ — check such details in the host. The Augmented
-  Bahnhofsviertel branches already run their previews on the host's 1.3.0
-  (`augmented-bahnhofsviertel/PORTING-GUIDE.md` §9); `feature_template`
-  doesn't yet.
+  updates differ — check such details in the host.
 - **Vue.** The module build leaves `vue` external — the host provides one
   shared Vue through its import map. The standalone bundles Vue. Never add
   Vue to `dependencies`.
@@ -63,8 +60,7 @@ Headless checking of `dev:ar` without a phone:
   `dev:ar` — see [SCENE-PLACEMENT-GUIDE.md](SCENE-PLACEMENT-GUIDE.md).
 - **Standalone extras.** The standalone page shows the developer hint
   "AR Module Preview · 8th Wall …" and the page title of `ar.html`; remove
-  or replace them for a public stand-alone version (the Augmented
-  Bahnhofsviertel release script does this).
+  or replace them for a public stand-alone version.
 
 ## 2. What the host does with a module
 
@@ -145,27 +141,40 @@ Host the **whole `dist-platform/` folder** — `ar-module.js` loads its
 cross-origin requests (CORS), serve `.js` as `text/javascript`, and should
 support HTTP range requests (iOS needs them for video/audio).
 
-The example branches (`animationssystem-wanderer`,
-`material-shader-showcase`, `zufallsverteilung-lod`) ship a
-`npm run deploy:production` script that builds both and rsyncs them to the
-AN ALLE! server:
+Most authors have no access to the server. In that case, hand the finished
+`dist-platform/` folder to the people running the platform (or your workshop)
+together with a title, your name and the location where the work should appear.
+They upload and register it and send you the direct link to check it. If you
+have your own web space that meets the requirements above, you can host the
+folder yourself and only ask them to register the URL.
+
+With server access, the folders are:
 
 | Build | Server folder | URL |
 |---|---|---|
 | `dist-platform/` | `html/ar-modules/ar-<slug>-module/` | `https://an-alle.net/ar-modules/ar-<slug>-module/` — no page of its own; this is the `url` for the admin panel |
 | `dist-ar/` | `html/standalones/ar-<slug>-standalone/` | `https://an-alle.net/standalones/ar-<slug>-standalone/` (also under `allean.uber.space`) |
 
-These three are the example scenes exported as modules so far
-(`randomfield`, `shadershowcase`, `soundwanderer`). `proximity-effekte`
-was never exported as a module; it only has `npm run deploy:ar`
-(standalone to the test space). The Augmented Bahnhofsviertel branches build both for all works at
-once with `npm run abv:release`, which also checks shared components,
-asset-id clashes and the build itself (`PORTING-GUIDE.md` §9). None of
-these scripts is on `feature_template` yet.
+<!-- project-specific -->
+#### Project context: deploy scripts
+
+The example branches (`animationssystem-wanderer`, `material-shader-showcase`,
+`zufallsverteilung-lod`) ship a `npm run deploy:production` script that builds
+both and rsyncs them to the AN ALLE! server; these three are the example scenes
+exported as modules so far (`randomfield`, `shadershowcase`, `soundwanderer`).
+`proximity-effekte` was never exported as a module; it only has
+`npm run deploy:ar` (standalone to the test space). The Augmented
+Bahnhofsviertel branches build both for all works at once with
+`npm run abv:release`, which also checks shared components, asset-id clashes
+and the build itself, and run their previews on the host's 8frame 1.3.0
+(`PORTING-GUIDE.md` §9 on those branches). None of this is on
+`feature_template`.
+
+<!-- /project-specific -->
 
 ### Registering it on the platform
 
-In the admin panel (`/admin/`), add an AR module: `text` (title),
+This step needs an admin login. In the admin panel (`/admin/`), add an AR module: `text` (title),
 `url` (the uploaded `dist-platform/` folder), `author`, `location` (where
 it appears), optionally a category; `enabled` controls visibility. To test
 without travelling there:

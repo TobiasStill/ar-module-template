@@ -32,8 +32,8 @@ real conflict with [LOD + Billboard](LOD-BILLBOARD-FEATURE-GUIDE.md).
 
 Ported from `Rosa_module`, where it was hardcoded to one specific asset's
 mesh names (`Mesh_1`..`Mesh_8`); the port turned the mapping into the
-attribute (details in §3). The bundled example asset and the combined
-example scene come from the `Rosa` project.
+attribute (details in §3). The example model is generated, not taken from
+that project.
 
 <!-- /project-specific -->
 
@@ -42,15 +42,15 @@ Files:
 ```
 src/a-frame-components/mesh-render-order.ts
 examples/mesh-render-order-usage.html   # scene wiring + full attribute reference
-examples/mesh-render-order-unlit-material-rosa-scene.html # combined
+examples/mesh-render-order-unlit-material-scene.html # combined
                                     # with unlit-material
 ```
 
-**Assets:** [`mesh-render-order-rosa.glb`](../src/assets/mesh-render-order-rosa.glb) —
-a character with seven named meshes (`"orange flame"`, `"violet flame"`,
-`"green flame"`, `"lime flame"`, `"person squat"`, `"person stand"`,
-`"person nails"`), used only by the combined example above; not required to
-use this component on your own assets.
+**Assets:** [`mesh-render-order-demo.glb`](../examples/assets/mesh-render-order-demo.glb) —
+five overlapping see-through panels with named meshes (`veil_back`,
+`veil_middle`, `veil_front`, `halo`, `core`), used only by the combined
+example above. Copy it into `src/assets/` to try that; it isn't required to use
+this component on your own assets.
 
 **Read [RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md](../cross-feature-reference-docs/RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md)
 before using this on anything transparent** — same underlying render-queue
@@ -90,7 +90,7 @@ too, just at named-submesh granularity instead of whole-model granularity.
 | `mesh-render-order` | string | `""` | Semicolon-separated `MeshName: number` pairs, e.g. `mesh-render-order="Flame_A: 1; Flame_B: 2; Body: 3"`. Every named mesh found inside the loaded model gets `node.renderOrder` set to its listed value; unlisted meshes are left untouched. A-Frame's schema system doesn't support fully dynamic keys, so this is one string attribute parsed by hand, not a multi-property object schema like most other components here. |
 
 ```html
-<a-entity gltf-model="#Character" mesh-render-order="orange flame: 1; violet flame: 2; person squat: 3"></a-entity>
+<a-entity gltf-model="#Character" mesh-render-order="veil_back: 1; veil_middle: 2; core: 3"></a-entity>
 ```
 
 A malformed entry (missing colon, non-numeric value) is skipped with a
@@ -137,8 +137,10 @@ traversed node during development) rather than assuming a name scheme.
 Compression tools such as `gltfpack` can strip or relocate mesh names (see
 [ASSET-COMPRESSION-GUIDE.md](../cross-feature-reference-docs/ASSET-COMPRESSION-GUIDE.md)) —
 compress from an original and check that the names survive.
-`examples/mesh-render-order-unlit-material-rosa-scene.html` demonstrates
-this component against a real asset's names, working end-to-end.
+Three.js' `GLTFLoader` also changes names while loading: a space becomes an
+underscore, so a mesh called `left wing` in your 3D tool is `left_wing` here.
+`examples/mesh-render-order-unlit-material-scene.html` demonstrates this
+component against a real asset's names, working end-to-end.
 
 <!-- project-specific -->
 #### Project context: `Rosa_module` / `Rosa`
@@ -170,8 +172,7 @@ value.
 
 - `Rosa_module`'s copy (152 KB, almost certainly run through a compressor
   like `gltfpack`) has every mesh-bearing node's `name` stripped entirely.
-- The plain `Rosa` branch's own copy (435 KB, uncompressed — now also
-  bundled here as `mesh-render-order-rosa.glb`, see the Files list above)
+- The plain `Rosa` branch's own copy (435 KB, uncompressed)
   still has its original names: `"orange flame"`, `"violet flame"`,
   `"green flame"`, `"lime flame"`, `"person squat"`, `"person stand"`,
   `"person nails"` — seven meshes, not eight.
@@ -184,9 +185,8 @@ the model, not something a later compression step broke. This is a
 pre-existing data/source-code mismatch on the original branch, not a bug in
 either the source or the ported component — but it means whoever adopts
 this on a *new* asset should verify their own glTF's actual node names
-first rather than assuming a name scheme. The combined example scene
-recreates `Rosa_module`'s actual scene, using the plain `Rosa` branch's
-uncompressed copy of the asset for that reason.
+first rather than assuming a name scheme. The template doesn't ship that
+model: it is the student's work, so the combined example uses a generated one.
 
 <!-- /project-specific -->
 

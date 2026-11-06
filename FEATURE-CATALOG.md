@@ -48,10 +48,11 @@ convention.
 | [Mirror Shard](#mirror-shard) | A field of 112 glass shards that ripple outward when tapped | [`visual-effect`](#tag-visual-effect), [`interaction`](#tag-interaction), [`procedural`](#tag-procedural) | `Zhichang_module` | [MIRROR-SHARD-FEATURE-GUIDE.md](guides/MIRROR-SHARD-FEATURE-GUIDE.md) |
 | [Liquid Texture](#liquid-texture) | Generic procedural "liquid ink" texture, optionally reveals a target image | [`procedural`](#tag-procedural), [`visual-effect`](#tag-visual-effect) | `Zhichang_module` | [LIQUID-TEXTURE-FEATURE-GUIDE.md](guides/LIQUID-TEXTURE-FEATURE-GUIDE.md) |
 
-Not covered here: `main`'s own baseline demo content (`jellyfish-video.mp4`)
-— that's the template's own placeholder scene asset, not a universalized
-feature (the *image tracking* it used to be paired with, above, now is).
-Also not covered: [Template infrastructure](#template-infrastructure)
+Asset links below lead to `examples/assets/` and `examples/image-targets/`:
+generated demo files that only reach a module when you copy them into
+`src/assets/` or `src/image-targets/`.
+
+Not covered here: [Template infrastructure](#template-infrastructure)
 below — not a pick-and-choose feature, its own category instead.
 
 **Cross-feature reference docs** — not tied to one feature, so not listed
@@ -103,6 +104,7 @@ building blocks", which is specifically components registered via
 |---|---|---|
 | Loading bar + spinner | [`src/asset-loading-overlay.ts`](src/asset-loading-overlay.ts) + the `<script>`/`<template>` blocks at the top/bottom of [`src/ArModule.vue`](src/ArModule.vue) | A thin top-of-screen progress bar and a centre-screen spinner, shown while this module's manifest assets are still loading; the 3D content stays hidden (`:visible="assetsLoaded"`) until everything's ready, then appears all at once instead of popping in piecemeal. Part of the template baseline because practically every module needs it. Deliberately **not** an A-Frame component — 2D screen-space UI that has to exist and be visible *before* any 3D entity is ready, driven by Vue's `onMounted`/`onUnmounted` rather than any entity's lifecycle (see the comment at the top of `ArModule.vue`'s `<script>` block for the full reasoning). Works automatically for whatever assets your scene adds — nothing to copy in, nothing to register in `manifest.ts`. Also mentioned in [QUICK_START_GUIDE.md](QUICK_START_GUIDE.md). |
 | Automatic component registration | [`scripts/used-components.ts`](scripts/used-components.ts) + `autoComponents()` in [`vite.config.ts`](vite.config.ts) → `virtual:used-components`, spread into `components` in [`src/manifest.ts`](src/manifest.ts) | Every file in `src/a-frame-components/` with a default export is a component named after its file; exactly the ones the module uses (by name in `ArModule.vue` and the files it imports, plus transitively) are bundled and registered — in `dev`, `dev:ar` (live-updated) and `build`. Nothing to list in `manifest.ts` when copying a feature in; unused components neither ship nor claim names in the shared host scene. See README "Components register automatically". |
+| Demo asset generator | [`scripts/generate-demo-assets.ts`](scripts/generate-demo-assets.ts) | Generates everything in `examples/assets/` and `examples/image-targets/`, plus `shards.json`, from code, so the template carries no third-party material |
 | MeshOpt decoder patch | [`lib/gltf-meshopt-setup.ts`](lib/gltf-meshopt-setup.ts) + vendored [`lib/vendor/meshopt_decoder.module.js`](lib/vendor/meshopt_decoder.module.js), called once from [`src/manifest.ts`](src/manifest.ts) | Patches every `THREE.GLTFLoader` instance so `gltfpack -c`-compressed `.glb` files (produced by [`scripts/compress-assets.ts`](scripts/compress-assets.ts), `npm run compress-assets`) actually load — A-Frame/8th Wall never wire this up themselves, so without it a meshopt-compressed asset fails to load at all. Idempotent, near-zero cost even if a project never compresses anything. Full picture, including the compression tool itself and real pitfalls of producing compressed assets, in [ASSET-COMPRESSION-GUIDE.md](cross-feature-reference-docs/ASSET-COMPRESSION-GUIDE.md). |
 
 <!-- project-specific -->
@@ -141,10 +143,10 @@ Also depends on the shared `ar-button` / `ar-button-manager` (see
 
 | Asset | Used by | Function |
 |---|---|---|
-| [`sound-start.webp`](src/assets/sound-start.webp) | `examples/sound-gui-panel.html` | Restart icon on the 2D GUI panel |
-| [`sound-stop.webp`](src/assets/sound-stop.webp) | `examples/sound-gui-panel.html` | Stop icon |
-| [`sound-play.webp`](src/assets/sound-play.webp) | `examples/sound-gui-panel.html` | Play icon |
-| [`sound-pause.webp`](src/assets/sound-pause.webp) | `examples/sound-gui-panel.html` | Pause icon |
+| [`sound-start.webp`](examples/assets/sound-start.webp) | `examples/sound-gui-panel.html` | Restart icon on the 2D GUI panel |
+| [`sound-stop.webp`](examples/assets/sound-stop.webp) | `examples/sound-gui-panel.html` | Stop icon |
+| [`sound-play.webp`](examples/assets/sound-play.webp) | `examples/sound-gui-panel.html` | Play icon |
+| [`sound-pause.webp`](examples/assets/sound-pause.webp) | `examples/sound-gui-panel.html` | Pause icon |
 
 Examples: [`ar-button-usage.html`](examples/ar-button-usage.html),
 [`sound-gui-panel.html`](examples/sound-gui-panel.html),
@@ -245,8 +247,9 @@ XR8 at all, so this can never be seen working there.
 
 | Asset | Used by | Function |
 |---|---|---|
-| [`video-target.json`](src/image-targets/video-target.json) + 4 images | `examples/image-tracking-usage.html` | 8th Wall image-target compiler tool output for the example target — cross-checked against 8th Wall's own official reference project's export format, schema matches |
-| [`jellyfish-video.mp4`](src/assets/jellyfish-video.mp4) | `examples/image-tracking-usage.html` | The example's video content, played once the target is detected |
+| [`video-target.json`](examples/image-targets/video-target.json) + 4 images | `examples/image-tracking-usage.html` | Generated demo target in the 8th Wall target tool's format |
+| [`image-tracking-demo-video.mp4`](examples/assets/image-tracking-demo-video.mp4) | `examples/image-tracking-usage.html` | The example's video content, played once the target is detected |
+| [`image-tracking-poster.jpg`](examples/assets/image-tracking-poster.jpg) | `examples/image-tracking-usage.html` | Poster frame shown before the video plays |
 
 Examples: [`image-tracking-usage.html`](examples/image-tracking-usage.html)
 
@@ -639,21 +642,18 @@ and the guide's own incompatibilities section.
 
 | Asset | Used by | Function |
 |---|---|---|
-| [`mesh-render-order-rosa.glb`](src/assets/mesh-render-order-rosa.glb) | `examples/mesh-render-order-unlit-material-rosa-scene.html` | Example character with seven named meshes (flames and figure), uncompressed so the node names are intact |
+| [`mesh-render-order-demo.glb`](examples/assets/mesh-render-order-demo.glb) | `examples/mesh-render-order-unlit-material-scene.html` | Generated demo: five overlapping see-through panels with named meshes |
 
 <!-- project-specific -->
 ### Project context: `Rosa_module` / `Rosa`
 
-`mesh-render-order` was ported from `Rosa_module`. The example asset is
-`Rosa_module`'s character model, pulled from the plain `Rosa` branch's own
-uncompressed copy (see the guide's §3 for why `Rosa_module`'s own
-compressed copy couldn't be used); the combined example recreates
-`Rosa_module`'s scene.
+`mesh-render-order` was ported from `Rosa_module`; its model isn't part of the
+template.
 
 <!-- /project-specific -->
 
 Examples: [`mesh-render-order-usage.html`](examples/mesh-render-order-usage.html),
-[`mesh-render-order-unlit-material-rosa-scene.html`](examples/mesh-render-order-unlit-material-rosa-scene.html)
+[`mesh-render-order-unlit-material-scene.html`](examples/mesh-render-order-unlit-material-scene.html)
 
 ## Light & Reflections
 
@@ -786,7 +786,7 @@ inner illustration layer powered by [Liquid Texture](#liquid-texture).
 
 | Asset | Used by | Function |
 |---|---|---|
-| [`mirror-shard-data/shards.json`](src/a-frame-components/mirror-shard-data/shards.json) | `mirror-shard.ts` (static import, not `src/assets/` — build-time geometry, not a runtime-loaded asset) | Bundled shard geometry: 112 triangles + per-shard seed/depth |
+| [`mirror-shard-data/shards.json`](src/a-frame-components/mirror-shard-data/shards.json) | `mirror-shard.ts` (static import, not `src/assets/` — build-time geometry, not a runtime-loaded asset) | Generated shard geometry: 112 triangles + per-shard seed/depth |
 
 Related feature: [Liquid Texture](#liquid-texture) (optional inner
 illustration layer, wired via the `liquidTarget` selector attribute).
@@ -821,8 +821,8 @@ Salvaged from `Zhichang_module`, the same source branch as Mirror Shard.
 
 | Asset | Used by | Function |
 |---|---|---|
-| [`liquid-texture-target-1.webp`](src/assets/liquid-texture-target-1.webp) | `examples/liquid-texture-usage.html`, `examples/mirror-shard-liquid-texture-scene.html` | Example `target` image (blue/civic-themed illustration) demonstrating the ink revealing a real photo |
-| [`liquid-texture-target-2.webp`](src/assets/liquid-texture-target-2.webp) | `examples/liquid-texture-usage.html`, `examples/mirror-shard-usage.html` | Second example `target` image (orange-themed illustration), paired with a different palette |
+| [`liquid-texture-target-1.webp`](examples/assets/liquid-texture-target-1.webp) | `examples/liquid-texture-usage.html`, `examples/mirror-shard-liquid-texture-scene.html` | Generated abstract `target` image (blue circles) showing the ink revealing an image |
+| [`liquid-texture-target-2.webp`](examples/assets/liquid-texture-target-2.webp) | `examples/liquid-texture-usage.html`, `examples/mirror-shard-usage.html` | Second generated `target` image (orange bars), paired with a different palette |
 
 Related feature: [Mirror Shard](#mirror-shard) (consumes this component's
 rendered texture for its inner illustration layer).

@@ -26,7 +26,7 @@ The technical companion to the introductions
 [Vue](VUE-INTRODUCTION.md), [writing a component](WRITING-A-COMPONENT-GUIDE.md)).
 Read it once to get the overall picture, and come back when you wonder
 where something lives or why a file has the shape it has. Host facts are
-from `TobiasStill/ar-demo-backend` at `0651352`; versions as in this
+from `TobiasStill/ar-demo-backend` at `727ea7a`; versions as in this
 template's `package.json` and `lib/vendor/`.
 
 ## 1. The layers

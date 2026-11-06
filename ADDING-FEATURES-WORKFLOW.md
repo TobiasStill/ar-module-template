@@ -219,13 +219,11 @@ belongs either. Split:
 - **Integral, feature-defining assets** — needed for the feature's own code
   to function, and generic enough that any project would want the same
   ones (or could reasonably use them as-is). The sound feature's four
-  play/pause/stop/restart icons are this: `sound-controller`'s GUI panel
-  code references them by id directly, and a restart/stop/play/pause icon
-  set isn't specific to any one project's content. If porting, these get
-  copied over for real (`git checkout <source-branch> -- <path>`), renamed
-  to the naming convention, and committed. If original, you're authoring
-  them fresh — same bar applies: would this asset make sense shipped as
-  part of the generic feature, or is it really just placeholder content?
+  play/pause/stop/restart icons are this: the GUI panel code references them
+  by id directly, and a restart/stop/play/pause icon set isn't specific to
+  any one project's content. These are made fresh, even when porting: add them
+  to `scripts/generate-demo-assets.ts` (or use a file whose free use is
+  documented), name them by the convention, and put them in `examples/assets/`.
 - **Artistic / project-specific content** — 3D models, recorded audio
   clips, anything that's *what this particular project's feature instance
   happens to play or show*. The sound feature's exhibit models and
@@ -236,6 +234,15 @@ belongs either. Split:
 
 When in doubt: would a *different* project using this feature plausibly want
 the exact same file? If yes, it's integral. If it's "content," it's not.
+
+**Never copy an asset from a source branch.** Models, images, sound, video and
+geometry data in student and project branches belong to their authors and are
+not free to redistribute. This also applies to an asset you only want as a demo.
+
+**Nothing goes into `src/assets/` or `src/image-targets/` on `feature_template`.**
+Both stay empty, because every file in them ships with every module built from
+the template. Demo files live in `examples/assets/` and
+`examples/image-targets/`, and the example says which ones to copy.
 
 Once an asset is confirmed integral, consider whether it's worth
 compressing before committing (`npm run compress-assets`) — see

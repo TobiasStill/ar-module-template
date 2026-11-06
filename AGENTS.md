@@ -17,7 +17,21 @@ tracking, image targets, and AR session management. Two preview modes:
 are NOT interchangeable; some features (image tracking) only function in
 the latter.
 
-## 2. Branch model — figure out which branch you're on before doing anything
+## 2. Two kinds of work, and the branch model
+
+Figure out which one you are doing before anything else:
+
+- **Project work:** the user builds their own module in their own fork or
+  branch. This is the usual case in a clone you find on a user's machine. Their
+  branch is theirs, whatever its name: edit `src/ArModule.vue`, `src/assets/` and
+  the manifest freely. If they ask for scene work while still on
+  `feature_template`, create a branch for it first (`git switch -c <name>`), then
+  carry on. Don't refuse the task, and don't follow the template rules marked
+  "template work" below.
+- **Template work:** adding, porting or changing a feature in
+  `feature_template` itself. All rules below apply.
+
+Branches of the upstream repository:
 
 - `main` — clean baseline. Placeholder scene content only.
 - `feature_template` — the accumulation branch. Every reusable feature
@@ -26,16 +40,25 @@ the latter.
   the task is "add/port/document a feature."
 - `<Name>_module`, `<Name>_production`, or bare `<Name>` branches (e.g.
   `Jakob_module`, `Gyumin_production`, `Rosa`) — real, one-off student/
-  client AR projects. Each one built project-specific features that may
-  contain something worth generalizing into `feature_template`. Treat
-  these as **read-only source material** — never merge `main` into them,
-  never push changes to them, only read/copy from them (`git show
-  <branch>:<path>`, `git checkout <branch> -- <path>`).
+  client AR projects in the upstream repository. Each one built project-specific
+  features that may contain something worth generalizing into `feature_template`.
+  Treat these as **read-only source material** — never merge `main` into them,
+  never push changes to them, only read code from them (`git show
+  <branch>:<path>`). Their assets are their authors' work: never copy them
+  (§5). A user's own project branch is not one of these, even with a similar name.
 
 If the task involves "port X from branch Y" or "bring in a feature," you
 are doing what this repo calls **universalizing** — see §3.
 
-## 3. Mandatory read order before modifying anything
+## 3. Read order before modifying anything
+
+**Project work:** this file, then `FEATURE-CATALOG.md` and the guide of each
+feature you use (including its §4). Read
+`cross-feature-reference-docs/SCENE-PLACEMENT-GUIDE.md` before positioning
+anything and `BUILD-AND-EXPORT-GUIDE.md` (same folder) before an export. Open
+the other documents below only when their topic comes up.
+
+**Template work:** all of the following, in order.
 
 1. **This file.**
 2. **`ADDING-FEATURES-WORKFLOW.md`** (repo root) — the authoritative,
@@ -100,17 +123,19 @@ are doing what this repo calls **universalizing** — see §3.
 src/ArModule.vue              the ONE file a project fork hand-edits with its own scene
 src/manifest.ts                assets (auto) + components (auto, see §5) + camera + imageTargets
 src/a-frame-components/*.ts    every A-Frame component, flat folder, non-recursive scan; file name = component name
-src/assets/                    binary assets (.glb/.png/.mp3/...), flat folder, non-recursive scan
-src/image-targets/             8th Wall image-target JSON + images, flat, non-recursive scan
+src/assets/                    binary assets (.glb/.png/.mp3/...), flat folder, non-recursive scan; empty in the template
+src/image-targets/             8th Wall image-target JSON + images, flat, non-recursive scan; empty in the template
 src/asset-loading-overlay.ts   template-baseline loading bar/spinner helper (not a component)
 src/ArOverlay.vue              AR Overlay feature (Vue, not an A-Frame component) + src/ar-overlay-icons.ts
 examples/*.html                copy-paste reference markup per feature, never compiled/served
+examples/assets/, examples/image-targets/  generated demo files; never scanned; copied into src/ when a project uses them
 guides/*-FEATURE-GUIDE.md      one guide per feature: setup, attributes, internals, incompatibilities
 cross-feature-reference-docs/  docs spanning multiple features, not owned by any one (render-order/transparency, asset compression, headless AR testing, scene placement, build & export, architecture, tool introductions)
 lib/                            host/preview plumbing — not edited by a project fork; includes gltf-meshopt-setup.ts.
                                dev:ar/build:ar run 8frame 1.5.0 (lib/vendor/), the host runs 8frame 1.3.0 (three r137) —
                                verify three.js-version-sensitive behaviour (colorSpace/encoding, opaque sorting, PMREM) against the host
 scripts/compress-assets.ts     `npm run compress-assets` — interactive mesh/texture compression tool
+scripts/generate-demo-assets.ts  generates the demo files and mirror-shard's shards.json from code
 scripts/used-components.ts     scan behind automatic component registration (virtual:used-components in vite.config.ts)
 uncompressed-assets/            gitignored, local-only; pristine originals kept by compress-assets.ts
 *.md (repo root)                general, not-feature-specific docs (this file, workflow, catalog, README, quick-start)
@@ -124,9 +149,17 @@ uncompressed-assets/            gitignored, local-only; pristine originals kept 
   feature-owned files get a `<feature>-` prefix; genuinely generic/shared
   building blocks stay unprefixed or `ar-`-prefixed, even if only one
   feature currently uses them.
-- **Never edit `feature_template`'s `src/ArModule.vue`** to demonstrate a
-  feature — it's the one file every fork hand-edits, and must stay
-  generic. Add `examples/*.html` instead. The one standing exception is
+- **Template work: no third-party material, and nothing in `src/assets/`
+  or `src/image-targets/`.** Student and project work isn't free to redistribute,
+  so never copy models, images, sound, video or geometry data from a source
+  branch, not even as a demo. Demo files are generated
+  (`scripts/generate-demo-assets.ts`) or documented as free to use, and live in
+  `examples/assets/` / `examples/image-targets/`. Both `src/` folders stay empty
+  because everything in them ships with every module. See
+  `ADDING-FEATURES-WORKFLOW.md` step 5.
+- **Template work: never edit `feature_template`'s `src/ArModule.vue`** to
+  demonstrate a feature — it's the one file every fork hand-edits, and must stay
+  generic. (In project work, it is the file to edit: see §2.) Add `examples/*.html` instead. The one standing exception is
   genuine template-baseline infrastructure that isn't a pick-and-choose
   feature (e.g. the loading bar/spinner) — that required, and required
   explicit user sign-off before, direct `ArModule.vue` edits.
@@ -174,9 +207,11 @@ uncompressed-assets/            gitignored, local-only; pristine originals kept 
   `xr-light` alone, it only drives an existing light);
   otherwise the module turns dark in the host. Remove it when the module's
   last light goes. See README "Host lights".
-- **Check the host repo for changes regularly** (`TobiasStill/ar-demo-backend`,
-  private, read via `gh api`; read-only unless the user asks for a PR).
-  Before a release, before relying on a host fact (runtime versions, base
+- **Template work, with access: check the host repo for changes regularly**
+  (`TobiasStill/ar-demo-backend`, private, read via `gh api`; read-only unless
+  the user asks for a PR). If `gh api` returns 404 or 403, the user has no access:
+  don't block on it, rely on the facts in README "Keeping up with the host" and
+  say they couldn't be re-checked. Before a release, before relying on a host fact (runtime versions, base
   scene/lights, UI, module loader), and whenever host and preview behave
   differently: look at the commits since the "Last checked" line in README
   "Keeping up with the host" and at the files listed there. If anything

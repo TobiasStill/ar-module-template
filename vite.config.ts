@@ -59,7 +59,7 @@ function readImageTargetFiles(): string[] {
  * Serve a static directory at a URL prefix from a Connect middleware stack.
  * Honours HTTP `Range` requests (206 + `Content-Range`): iOS/Safari refuses to
  * play a `<video>`/`<audio>` source that isn't served with range support, so
- * without this the preview's `jellyfish-video.mp4` silently fails on iPhone —
+ * without this a video asset silently fails in the preview on iPhone —
  * the primary AR test device. Files are streamed, not buffered whole.
  */
 function serveDir(server: any, prefix: string, root: string) {

@@ -14,16 +14,27 @@ It has several branches; the one to start from is **`feature_template`** —
 it holds the starter scene, every ready-made AR effect and all the guides.
 On GitHub, pick it in the branch menu above the file list.
 
-To start your own project, get a copy of the `feature_template` branch onto
-your computer and work on it in an **IDE** (a code editor such as
-[Visual Studio Code](https://code.visualstudio.com/) or
-[WebStorm / IntelliJ IDEA](https://www.jetbrains.com/webstorm/)): there you
-open and edit your scene, and run the preview commands described below, all
-in one window. Most IDEs can download the project for you ("Clone
-repository" with the GitHub link above); on the command line it's
-`git clone --branch feature_template https://github.com/working-on-democracy/ar-module-template.git`.
-You'll also need [Node.js](https://nodejs.org/) (the current LTS version),
-which runs those preview commands.
+To start your own project, make your own copy of the template on GitHub (a
+**fork**) and work on that. You need a free GitHub account and
+[Node.js](https://nodejs.org/) (the current LTS version), which runs the
+preview commands described below.
+
+1. On the GitHub page above, click **Fork**. **Untick "Copy the `main` branch
+   only"**, otherwise your copy won't contain `feature_template`.
+2. Download your fork, only the branch you need. Most **IDEs** (code editors
+   such as [Visual Studio Code](https://code.visualstudio.com/) or
+   [WebStorm / IntelliJ IDEA](https://www.jetbrains.com/webstorm/)) have a
+   "Clone repository" command and a built-in terminal. Run this there, with your
+   own account name (the other branches would add over 400 MB):
+   ```
+   git clone --single-branch --branch feature_template https://github.com/YOUR-ACCOUNT/ar-module-template.git
+   ```
+3. Inside the new folder, create a branch for your project and put it online
+   (with your project's name instead of `my-project`):
+   ```
+   git switch -c my-project
+   git push -u origin my-project
+   ```
 
 ## About this guide
 
@@ -46,17 +57,18 @@ starting point you copy pieces out of into your own scene.
 
 ## Starting your own project, or just trying something out
 
-Don't build directly on the `feature_template` branch itself — it's the
-shared library every project starts from, and it needs to stay generic and
-uncluttered for the next person too. Create your **own branch (or fork)
-from `feature_template`**, and do all your project-specific work there:
-your own scene content, your own assets, any testing or experimenting.
-That's true whether you're starting a real project or just trying a
-feature out to see what it looks like.
+Do all your work, including tests and experiments, on your own branch in your
+fork. Keep `feature_template` itself as it is: it's the clean starting point for
+your next project.
 
-When `feature_template` gets updates later (new effects, fixes), bring them
-into your branch by merging `feature_template` into it — your IDE's Git
-menu can do that, or `git merge feature_template` on the command line.
+When the template gets updates later (new effects, fixes), bring them into your
+branch. The first command is needed only once:
+
+```
+git remote add -t feature_template upstream https://github.com/working-on-democracy/ar-module-template.git
+git fetch upstream
+git merge upstream/feature_template
+```
 
 ## Working with an AI coding agent?
 
@@ -73,7 +85,8 @@ rules before it touches anything, the same way this page gets you oriented.
 |---|---|
 | `src/ArModule.vue` | **Your scene.** Everything the visitor sees and hears — 3D objects, lights, and any feature you add — goes in here, inside the `<template>` section. |
 | `examples/*.html` | Copy-paste reference snippets, one (or a few) per feature. These are never run or edited directly — open one, copy the parts you need, paste them into `ArModule.vue`. Each file's own comments explain exactly what to copy and where it goes. |
-| `src/assets/` | Drop your images, sounds, and 3D models (`.glb`, `.png`, `.mp3`, ...) here. Every file becomes usable in your scene automatically, by its file name (a picture named `logo.png` becomes usable as `#logo`) — no extra setup. |
+| `examples/assets/`, `examples/image-targets/` | Demo files for the examples. An example that needs one says so; copy it into `src/assets/` (or `src/image-targets/`). |
+| `src/assets/` | Starts empty. Drop your images, sounds, and 3D models (`.glb`, `.png`, `.mp3`, ...) here. Every file becomes usable in your scene automatically, by its file name (a picture named `logo.png` becomes usable as `#logo`) — no extra setup. Every file here is also downloaded by every visitor, so delete what your scene doesn't use. Only use material you have the rights to. Start file names with your project's name (`myproject-logo.png`), because a name another work is already using on the platform can show that work's file instead. |
 | `src/a-frame-components/` | The effects' program files (one per effect). A branch made from `feature_template` already has all of them — your scene can use any of them by name right away. (Only a project made from an older copy of the template needs to copy files in from here.) |
 | `src/manifest.ts` | The module's settings the host reads (assets, camera, image targets). Features switch themselves on: a component file you copied into `src/a-frame-components/` works as soon as your scene uses its name — nothing to add here. You rarely need to touch this file — one exception: if your scene has its own lights, you can switch the platform's default lights off here (`hostLights: false`; see README, "Host lights"). Don't do this if your scene has no lights of its own, or it will turn dark. |
 
@@ -124,7 +137,8 @@ together is written down.
 
 ## Checking your work
 
-- `npm install` — once, after first opening the project.
+- `npm install` — once, after first opening the project. Warnings during
+  this step are normal; only a line saying `npm error` is a problem.
 - `npm run dev` — opens a live preview in a regular browser window,
   updating automatically as you save. No phone needed; good for a quick
   look while you work. Where things stand in the room isn't shown the way
@@ -132,13 +146,20 @@ together is written down.
 - `npm run dev:ar` — the same, but using your phone's camera for real AR,
   placed exactly as in the app. Phone and computer must be on the same
   Wi-Fi; open the printed `https://…` link on the phone and accept the
-  security warning (the preview uses its own certificate). Content in
-  `scene-root` stands on the floor in front of you — if you don't see it,
-  tilt the phone down.
+  security warning (the preview uses its own certificate). If the phone can't
+  reach the link, the network probably blocks devices from seeing each other,
+  as many guest networks do: connect the computer to your phone's hotspot and
+  try again. Content in `scene-root` stands on the floor in front of you — if
+  you don't see it, tilt the phone down. Colours and lighting can look a little
+  different in the real app, which runs an older engine version, so check your
+  finished work there too.
 - `npm run build` — packages the whole project into the one file that gets
   published for the real installation. Run this once you're ready to hand
   a piece off — if it finishes without red error text, it worked.
-  How the finished module gets onto the platform:
+  The result is the folder `dist-platform/`. To get your work onto the
+  platform, hand that whole folder to the people running the platform (or your
+  workshop), with a title, your name and the location; they upload and register
+  it. Details:
   [BUILD-AND-EXPORT-GUIDE.md](cross-feature-reference-docs/BUILD-AND-EXPORT-GUIDE.md).
 
 You don't need to understand how these commands work internally — just run
@@ -161,6 +182,8 @@ make sure it's ready:
 - **It's universally usable, not specific to your project.** No hardcoded
   values, ids, or assets that only make sense in your own scene — anything
   like that needs to become a setting/attribute someone else can change.
+- **It brings no material you can't give away.** Your artwork stays in your
+  project; the template only takes demo files that are generated or free to use.
 - **It follows [ADDING-FEATURES-WORKFLOW.md](ADDING-FEATURES-WORKFLOW.md)
   in full** — this is the actual checklist a new feature is judged
   against (design, file naming, the example file, the guide, the catalog

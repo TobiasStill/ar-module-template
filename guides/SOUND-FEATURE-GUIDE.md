@@ -39,7 +39,7 @@ src/a-frame-components/
   sound-button.ts            # sound: plays/pauses/stops a `sound` entity on tap
   sound-unlock-audio.ts      # sound: shared iOS/Web Audio unlock helper
   sound-scene-audio.ts       # sound: optional helpers for plain `sound` entities (see below)
-src/assets/
+examples/assets/
   sound-start.webp, sound-stop.webp, sound-play.webp, sound-pause.webp
 (components register automatically by file name — nothing to add to src/manifest.ts)
 examples/
@@ -76,7 +76,7 @@ i.e. it already has `src/manifest.ts`, `src/a-frame-components/`,
    not a folder.
 
 2. **Copy the icon assets** — copy the four `sound-*.webp` files from
-   `src/assets/` into your project's own `src/assets/`. These are the
+   `examples/assets/` into your project's own `src/assets/`. These are the
    restart/stop/play/pause icons the GUI panel needs; swap them for your own
    art later if you want, keeping the same 4 file names (or update
    `iconSrc()` calls in step 5 if you rename them).

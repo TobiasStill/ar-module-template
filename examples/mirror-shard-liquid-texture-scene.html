@@ -1,5 +1,5 @@
 <!--
-  MIRROR-SHARD + LIQUID-TEXTURE — recreating Zhichang_module's original scene
+  MIRROR-SHARD + LIQUID-TEXTURE — both components in one scene
   ===============================================================================
   Not compiled or served by anything in this project — reference markup
   showing both components combined to reproduce the ORIGINAL "DMS Liquid
@@ -12,8 +12,9 @@
 
   Source: Zhichang_module's src/ArModule.vue + src/a-frame-components/
   dms-mirror-shards.ts (component data "dms-data/single-liquid-series.json":
-  physicalHeightMeters: 1.86, panel src: single-liquid-final-target.png →
-  this template's src/assets/liquid-texture-target-1.webp).
+  physicalHeightMeters: 1.86). Shard layout and target image are not the
+  original's: the template uses its own generated ones. Copy
+  examples/assets/liquid-texture-target-1.webp into src/assets/ first.
 -->
 
 <!-- Scene lighting — identical values to the original's ArModule.vue. -->
@@ -25,18 +26,15 @@
      sphere — same component the original's ArModule.vue also mounted. -->
 <a-entity no-frustum-cull></a-entity>
 
-<!-- The inner illustration layer. Uses the original's PRIMARY target image
-     (single-liquid-final-target.png → liquid-texture-target-1.webp here)
-     and a palette approximating the original shader's actual blue
+<!-- The inner illustration layer. Uses the generated target image
+     liquid-texture-target-1.webp and a palette approximating the original shader's actual blue
      palette() stops (paper #F4FBFF, cyan #0094FF, ultramarine #000FA8 —
      the 5-stop original's outer/dominant-mid/innermost stops; this
      component only has 3, so "ice"/"cobalt" in between aren't separately
-     representable). The original ALSO had a second "authoritySrc" target
-     (authoritarian-orange-final-target-v1.png → liquid-texture-target-2.webp
-     here) and a polarity mechanic that blended toward whichever of the two
+     representable). The original ALSO had a second target image and a polarity mechanic that blended toward whichever of the two
      was "winning" — see LIQUID-TEXTURE-FEATURE-GUIDE.md's "What changed
      from the source" section for why that dual-target system was dropped
-     rather than ported; this recreation uses only the primary target. -->
+     rather than ported; this scene uses one target. -->
 <a-entity
     id="mirror-shard-liquid"
     liquid-texture="target: #liquid-texture-target-1; colorLight: #F4FBFF; colorMid: #0094FF; colorDark: #000FA8; quality: auto">

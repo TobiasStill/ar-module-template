@@ -27,7 +27,7 @@ Not tied to one feature: it applies to every scene, and to
 Read it before positioning anything in `src/ArModule.vue`, before
 "correcting" a scene that sits in the wrong place, and when a scene that
 looks right in a preview is off in the app. Host facts are from
-`TobiasStill/ar-demo-backend` at `0651352` (`frontend/src/components/ArScene.vue`,
+`TobiasStill/ar-demo-backend` at `727ea7a` (`frontend/src/components/ArScene.vue`,
 `ArModule.vue`); measurements are from headless `dev:ar` sessions
 ([HEADLESS-AR-TESTING-GUIDE.md](HEADLESS-AR-TESTING-GUIDE.md)), not from a
 phone, unless said otherwise.

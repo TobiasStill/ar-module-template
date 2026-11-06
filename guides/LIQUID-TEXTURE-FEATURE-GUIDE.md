@@ -75,8 +75,8 @@ like any other `src/assets/`-sourced `<img>`.
 4. **Add a target image, if you want one** — drop an image into
    `src/assets/` and reference it via the `target` selector attribute
    (`target: #myImage`). Entirely optional — see
-   [2](#2-entities--attributes) for the built-in fallback. Two real example
-   textures already ship for this purpose — see
+   [2](#2-entities--attributes) for the built-in fallback. Two generated example
+   textures wait in `examples/assets/` for this purpose — see
    [3](#3-under-the-hood)'s "Bundled example textures" note — so
    `examples/liquid-texture-usage.html` demonstrates `target` against an
    actual image, not just a placeholder id.
@@ -168,13 +168,12 @@ only has meaning with two inks. `pigmentBoost`/`hash`/`noise`/`fbm`/`swirl`/
 
 ### Bundled example textures
 
-`src/assets/liquid-texture-target-1.webp` and `liquid-texture-target-2.webp`
-are real, working example images (abstract silhouette scenes), shipped so
+`examples/assets/liquid-texture-target-1.webp` and
+`liquid-texture-target-2.webp` are generated abstract images, so
 `examples/liquid-texture-usage.html` can demonstrate the `target` attribute
-against an actual photo rather than a placeholder id that doesn't resolve
-to anything. Treat them as placeholder/demo assets a real project replaces
-with its own imagery, same as any other example content in this template —
-not as this component's permanent default look.
+against a real file rather than a placeholder id. Copy them into `src/assets/`
+to try it. They are demo material a real project replaces with its own
+imagery, not this component's default look.
 
 <!-- project-specific -->
 #### Project context: `Zhichang_module`

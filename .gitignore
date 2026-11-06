@@ -5,6 +5,10 @@ dist-ar/
 *.log
 .DS_Store
 
+# Local secrets (API keys and the like): never commit them
+.env*
+!.env.example
+
 # IDE / editor config
 .idea/
 

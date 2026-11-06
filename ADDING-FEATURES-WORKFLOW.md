@@ -13,7 +13,7 @@ both:
 
 Almost the whole workflow is the same either way: design it well, follow
 the file-naming convention, write the guide, update the catalog, check for
-incompatibilities, commit. The one part that's specific to porting —
+incompatibilities, commit, release. The one part that's specific to porting —
 reading and scoping the feature on its *source* branch before touching
 anything — is broken out as its own clearly-marked **subroutine**, run once
 near the start and only when there's an actual source branch to scope.
@@ -31,18 +31,15 @@ updated). `QUICK_START_GUIDE.md` is a separate, short, non-technical guide
 for artists using this template's features — not part of researching or
 building a feature, but step 11 covers when it needs a touch-up.
 
-## 0. Keep `main` current — but don't touch feature branches with it
+## 0. Work on `feature_template`, not on `main`
 
-`git fetch origin`, then merge into **local `main` only**
-(`git checkout main && git merge origin/main`). Never merge `main`'s
-changes into a source feature branch (`Jakob_module`, etc.) — those stay
-exactly as their authors left them; this only matters if you're porting
-(see step 1). `feature_template` is branched fresh from this updated
-`main` (or, once it exists, already sits on top of it — see step 2), so
-it's `main`'s current state every feature has to work against — an
-original feature needs this just as much as a ported one, since it's
-still going to sit in the same shared scene as everything else already on
-`feature_template`.
+`main` is the released template that people download and fork.
+`feature_template` is where all work happens; `main` only receives tested states
+of it (step 14). So every feature has to work against the current
+`feature_template`, whether it's ported or original. Never merge `main` or
+`feature_template` into a source feature branch (`Jakob_module`, etc.) — those
+stay exactly as their authors left them; this only matters if you're porting
+(see step 1).
 
 ## 1. Is this a port, or an original feature?
 
@@ -95,14 +92,12 @@ this subroutine or started from an original idea.
 
 ---
 
-## 2. Branch (or reuse) `feature_template`
+## 2. Use `feature_template`
 
-Created once, from `main`, with **no upstream tracking**
-(`git checkout -b feature_template main` — not `origin/main`, and don't set
-`-u` afterwards) so a stray `git push` can't land on a shared branch by
-accident. Every subsequent feature — ported or original — is added to this
-same branch, on top of whatever's already there — don't re-branch from
-`main` per feature, or you'll lose every feature already on it.
+It already exists. Every feature — ported or original — is added to this same
+branch, on top of whatever's already there. Don't start a feature from `main`:
+it can be behind `feature_template`, so features not yet released would be
+missing.
 
 ## 3. Design for universality before writing code
 
@@ -554,3 +549,18 @@ Only when explicitly asked. Stage exactly the feature's files — leave out
 unrelated local/untracked clutter that happens to be sitting in the working
 tree. Write a commit message that explains *why* the restructuring
 happened (e.g. the generic/feature-specific split), not just a file list.
+
+## 14. Release to `main`
+
+Only when explicitly asked, and from a state that has been tested on a phone.
+`main` is what people get, so it never receives commits directly. Open a pull
+request from `feature_template` and merge it with a merge commit:
+
+```sh
+gh pr create --base main --head feature_template
+gh pr merge --merge
+```
+
+`src/assets/` and `src/image-targets/` must still be empty, and a fresh clone must
+pass `npm ci` and `npm run build`. People with a fork get the release with
+`git merge upstream/main` (`QUICK_START_GUIDE.md`).

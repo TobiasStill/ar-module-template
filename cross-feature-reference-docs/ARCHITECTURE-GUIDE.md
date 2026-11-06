@@ -167,8 +167,9 @@ compression tool).
   functions, because the module may be evaluated before A-Frame exists.
 - **Placement through `scene-root` / `world-origin`**, never fixed offsets
   ([SCENE-PLACEMENT-GUIDE.md](SCENE-PLACEMENT-GUIDE.md)).
-- **Branches:** `feature_template` is the shared library; every project
-  works on its own branch or fork made from it.
+- **Branches:** `main` is the released template everyone starts from;
+  `feature_template` is where it is developed. Every project works on its own
+  branch or fork made from `main`.
 - **Docs:** one guide per feature in `guides/` (§1 step-by-step, §2
   attributes, §3 under the hood, §4 incompatibilities), cross-feature topics
   in `cross-feature-reference-docs/`; a plain-language overview at the top

@@ -10,7 +10,7 @@ shows.
 
 Modules are built from **`ar-module-template`**, a project on GitHub:
 [github.com/working-on-democracy/ar-module-template](https://github.com/working-on-democracy/ar-module-template).
-The branch to start from is **`feature_template`**, the one GitHub shows
+The branch to start from is **`main`**, the one GitHub shows
 first: it holds the starter scene, every ready-made AR effect and all the guides.
 
 To start your own project, make your own copy of the template on GitHub (a
@@ -56,16 +56,16 @@ starting point you copy pieces out of into your own scene.
 ## Starting your own project, or just trying something out
 
 Do all your work, including tests and experiments, on your own branch in your
-fork. Keep `feature_template` itself as it is: it's the clean starting point for
-your next project.
+fork. Keep `main` itself as it is: it's the clean starting point for your next
+project.
 
 When the template gets updates later (new effects, fixes), bring them into your
 branch. The first command is needed only once:
 
 ```
-git remote add -t feature_template upstream https://github.com/working-on-democracy/ar-module-template.git
+git remote add -t main upstream https://github.com/working-on-democracy/ar-module-template.git
 git fetch upstream
-git merge upstream/feature_template
+git merge upstream/main
 ```
 
 ## Working with an AI coding agent?
@@ -85,7 +85,7 @@ rules before it touches anything, the same way this page gets you oriented.
 | `examples/*.html` | Copy-paste reference snippets, one (or a few) per feature. These are never run or edited directly — open one, copy the parts you need, paste them into `ArModule.vue`. Each file's own comments explain exactly what to copy and where it goes. |
 | `examples/assets/`, `examples/image-targets/` | Demo files for the examples. An example that needs one says so; copy it into `src/assets/` (or `src/image-targets/`). |
 | `src/assets/` | Starts empty. Drop your images, sounds, and 3D models (`.glb`, `.png`, `.mp3`, ...) here. Every file becomes usable in your scene automatically, by its file name (a picture named `logo.png` becomes usable as `#logo`) — no extra setup. Every file here is also downloaded by every visitor, so delete what your scene doesn't use. Only use material you have the rights to. Start file names with your project's name (`myproject-logo.png`), because a name another work is already using on the platform can show that work's file instead. |
-| `src/a-frame-components/` | The effects' program files (one per effect). A branch made from `feature_template` already has all of them — your scene can use any of them by name right away. (Only a project made from an older copy of the template needs to copy files in from here.) |
+| `src/a-frame-components/` | The effects' program files (one per effect). A branch made from `main` already has all of them — your scene can use any of them by name right away. (Only a project made from an older copy of the template needs to copy files in from here.) |
 | `src/manifest.ts` | The module's settings the host reads (assets, camera, image targets). Features switch themselves on: a component file you copied into `src/a-frame-components/` works as soon as your scene uses its name — nothing to add here. You rarely need to touch this file — one exception: if your scene has its own lights, you can switch the platform's default lights off here (`hostLights: false`; see README, "Host lights"). Don't do this if your scene has no lights of its own, or it will turn dark. |
 
 Everything else in the project (the `lib/` folder especially) is shared
@@ -116,7 +116,7 @@ original files safe in a local `uncompressed-assets/` folder first.
 1. Open [FEATURE-CATALOG.md](FEATURE-CATALOG.md), find the feature you
    want, and click through to its guide.
 2. Read that guide's first section (always called "step-by-step") — it's
-   a short checklist. If your branch was made from `feature_template`, the
+   a short checklist. If your branch was made from `main`, the
    component files are already in `src/a-frame-components/`, so the
    "copy the files" step is done; what's left is usually dropping your own
    images/sounds into `src/assets/` and, for some features, a setting in
@@ -167,8 +167,9 @@ them and look at the result.
 
 If something you built on your own project turns out generic and useful
 enough that future projects should have it too, you can propose adding it
-to `ar-module-template` itself with a pull request. Before opening one,
-make sure it's ready:
+to `ar-module-template` itself with a pull request. Open it against the
+`feature_template` branch, where the template is developed, not against `main`.
+Before opening one, make sure it's ready:
 
 - **It's a finished feature, not a work-in-progress experiment.** Half-done
   code that only covers your own project's use case isn't ready to share

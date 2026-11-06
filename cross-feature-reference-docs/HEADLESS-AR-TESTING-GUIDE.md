@@ -34,8 +34,8 @@ a feature guide.
 Verified 29.09.2026 on `animationssystem-wanderer`: the `an-alle-target`
 image target was detected, the scene anchored on it and rendered
 (wanderers, rings, tutorial overlay), console free of real errors. That
-branch is a good test candidate (target in `src/image-targets/`). On
-`feature_template`, copy the demo target from `examples/image-targets/` into
+branch is a good test candidate (target in `src/image-targets/`). In the
+template itself, copy the demo target from `examples/image-targets/` into
 `src/image-targets/` for the test and remove it afterwards.
 
 <!-- /project-specific -->
@@ -56,7 +56,7 @@ URL, see README.md).
 
 ## Branch
 
-`feature_template` has no visible scene content of its own (its start
+The template has no visible scene content of its own (its start
 scene is a light and a shadow-only floor), so it shows the camera feed and
 nothing else. Test on a branch with an actual scene. With an image target
 in `src/image-targets/`, the check also covers detection and anchoring

@@ -24,21 +24,23 @@ Figure out which one you are doing before anything else:
 - **Project work:** the user builds their own module in their own fork or
   branch. This is the usual case in a clone you find on a user's machine. Their
   branch is theirs, whatever its name: edit `src/ArModule.vue`, `src/assets/` and
-  the manifest freely. If they ask for scene work while still on
+  the manifest freely. If they ask for scene work while still on `main` or
   `feature_template`, create a branch for it first (`git switch -c <name>`), then
   carry on. Don't refuse the task, and don't follow the template rules marked
   "template work" below.
 - **Template work:** adding, porting or changing a feature in
   `feature_template` itself. All rules below apply.
 
-Branches (`feature_template` is the default branch of the public repository and
-protected against force-push and deletion):
+Branches (`main` and `feature_template` are protected against force-push and
+deletion):
 
-- `main` — clean baseline. Placeholder scene content only.
-- `feature_template` — the accumulation branch. Every reusable feature
-  ever universalized lives here, additively, on top of `main`. This is
-  almost certainly the branch you are on or should be working toward if
-  the task is "add/port/document a feature."
+- `main` — the released template and the default branch: what people download
+  and fork. Never commit to it directly. It only receives tested states of
+  `feature_template`, through a pull request (`ADDING-FEATURES-WORKFLOW.md`
+  step 14).
+- `feature_template` — the development branch. Every reusable feature
+  ever universalized lives here. This is the branch to work on if the task is
+  "add/port/document a feature."
 - `<Name>_module`, `<Name>_production` branches (e.g. `Jakob_module`,
   `Gyumin_production`), `abv-*` / `augmented-bahnhofsviertel`, and `sound-player`,
   `proximity-effekte`, `zwischen-basis`, `host-light-scale`, `ai-asset-tools`,

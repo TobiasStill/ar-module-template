@@ -31,21 +31,25 @@ Figure out which one you are doing before anything else:
 - **Template work:** adding, porting or changing a feature in
   `feature_template` itself. All rules below apply.
 
-Branches of the upstream repository:
+Branches (`feature_template` is the default branch of the public repository and
+protected against force-push and deletion):
 
 - `main` — clean baseline. Placeholder scene content only.
 - `feature_template` — the accumulation branch. Every reusable feature
   ever universalized lives here, additively, on top of `main`. This is
   almost certainly the branch you are on or should be working toward if
   the task is "add/port/document a feature."
-- `<Name>_module`, `<Name>_production`, or bare `<Name>` branches (e.g.
-  `Jakob_module`, `Gyumin_production`, `Rosa`) — real, one-off student/
-  client AR projects in the upstream repository. Each one built project-specific
-  features that may contain something worth generalizing into `feature_template`.
-  Treat these as **read-only source material** — never merge `main` into them,
-  never push changes to them, only read code from them (`git show
-  <branch>:<path>`). Their assets are their authors' work: never copy them
-  (§5). A user's own project branch is not one of these, even with a similar name.
+- `<Name>_module`, `<Name>_production` branches (e.g. `Jakob_module`,
+  `Gyumin_production`) and `abv-*` / `augmented-bahnhofsviertel` — real, one-off
+  student and artist projects. They are no longer in the public repository but in
+  the **private** `working-on-democracy/ar-module-template-archive`, and most users
+  have no access. Without access, `Source` entries and "Project context" notes
+  naming them are history only: don't look for them. With access, treat the student
+  branches as **read-only source material** — never merge `main` into them, never
+  push changes to them, only read code from them (`git show <branch>:<path>`).
+  Their assets are their authors' work: never copy them (§5). Never push any of
+  these branches back to the public repository. A user's own project branch is not
+  one of these, even with a similar name.
 
 If the task involves "port X from branch Y" or "bring in a feature," you
 are doing what this repo calls **universalizing** — see §3.

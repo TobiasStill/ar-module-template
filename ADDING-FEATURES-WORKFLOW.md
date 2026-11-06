@@ -57,6 +57,12 @@ still going to sit in the same shared scene as everything else already on
 
 ## Porting subroutine: scoping a feature on its source branch
 
+Student and artist project branches are in the private repository
+`working-on-democracy/ar-module-template-archive`. With access:
+`git remote add archive https://github.com/working-on-democracy/ar-module-template-archive.git`,
+then `git fetch archive`, and read from `archive/<branch>`. Port code only, and
+never push these branches to the public repository.
+
 **Only applies when adapting an existing feature from a project-specific
 fork branch (e.g. `Jakob_module`) into `feature_template`. Skip this
 entire section for a brand-new feature authored directly on

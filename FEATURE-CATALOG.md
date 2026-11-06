@@ -48,6 +48,9 @@ convention.
 | [Mirror Shard](#mirror-shard) | A field of 112 glass shards that ripple outward when tapped | [`visual-effect`](#tag-visual-effect), [`interaction`](#tag-interaction), [`procedural`](#tag-procedural) | `Zhichang_module` | [MIRROR-SHARD-FEATURE-GUIDE.md](guides/MIRROR-SHARD-FEATURE-GUIDE.md) |
 | [Liquid Texture](#liquid-texture) | Generic procedural "liquid ink" texture, optionally reveals a target image | [`procedural`](#tag-procedural), [`visual-effect`](#tag-visual-effect) | `Zhichang_module` | [LIQUID-TEXTURE-FEATURE-GUIDE.md](guides/LIQUID-TEXTURE-FEATURE-GUIDE.md) |
 
+The Source column records where a feature came from. Student and artist project
+branches named there are kept in a private archive, not in this repository.
+
 Asset links below lead to `examples/assets/` and `examples/image-targets/`:
 generated demo files that only reach a module when you copy them into
 `src/assets/` or `src/image-targets/`.

@@ -164,7 +164,7 @@ both and rsyncs them to the AN ALLE! server; these three are the example scenes
 exported as modules so far (`randomfield`, `shadershowcase`, `soundwanderer`).
 `proximity-effekte` was never exported as a module; it only has
 `npm run deploy:ar` (standalone to the test space). The Augmented
-Bahnhofsviertel branches build both for all works at once with
+Bahnhofsviertel branches (now in the private archive repository) build both for all works at once with
 `npm run abv:release`, which also checks shared components, asset-id clashes
 and the build itself, and run their previews on the host's 8frame 1.3.0
 (`PORTING-GUIDE.md` §9 on those branches). None of this is on

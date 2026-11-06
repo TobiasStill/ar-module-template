@@ -10,24 +10,22 @@ shows.
 
 Modules are built from **`ar-module-template`**, a project on GitHub:
 [github.com/working-on-democracy/ar-module-template](https://github.com/working-on-democracy/ar-module-template).
-It has several branches; the one to start from is **`feature_template`** —
-it holds the starter scene, every ready-made AR effect and all the guides.
-On GitHub, pick it in the branch menu above the file list.
+The branch to start from is **`feature_template`**, the one GitHub shows
+first: it holds the starter scene, every ready-made AR effect and all the guides.
 
 To start your own project, make your own copy of the template on GitHub (a
 **fork**) and work on that. You need a free GitHub account and
 [Node.js](https://nodejs.org/) (the current LTS version), which runs the
 preview commands described below.
 
-1. On the GitHub page above, click **Fork**. **Untick "Copy the `main` branch
-   only"**, otherwise your copy won't contain `feature_template`.
-2. Download your fork, only the branch you need. Most **IDEs** (code editors
-   such as [Visual Studio Code](https://code.visualstudio.com/) or
+1. On the GitHub page above, click **Fork** and keep the default settings.
+2. Download your fork. Most **IDEs** (code editors such as
+   [Visual Studio Code](https://code.visualstudio.com/) or
    [WebStorm / IntelliJ IDEA](https://www.jetbrains.com/webstorm/)) have a
-   "Clone repository" command and a built-in terminal. Run this there, with your
-   own account name (the other branches would add over 400 MB):
+   "Clone repository" command and a built-in terminal. On the command line, with
+   your own account name:
    ```
-   git clone --single-branch --branch feature_template https://github.com/YOUR-ACCOUNT/ar-module-template.git
+   git clone https://github.com/YOUR-ACCOUNT/ar-module-template.git
    ```
 3. Inside the new folder, create a branch for your project and put it online
    (with your project's name instead of `my-project`):

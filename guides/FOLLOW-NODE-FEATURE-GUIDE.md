@@ -1,12 +1,33 @@
 # Follow-node feature guide
 
+<!-- overview -->
+## Overview
+
+Pins something to a moving part of an animated model. If a character waves
+its arm, a sound, a light or a little marker can ride along on its hand; if
+a bird flaps across the scene, its song can come exactly from where the
+bird is right now instead of from a fixed spot. You only name the part (as
+it is called in the 3D program it was made in) and the model to look in —
+the rest follows by itself, frame by frame.
+
+<!-- /overview -->
+
+## Technical summary
+
 Makes an entity's position continuously track a named node (mesh, empty, or
 bone) inside another entity's loaded glTF — so something A-Frame-level (a
 `sound` component, a light, a marker) can be attached to a specific moving
 part of an animated model, rather than that model's overall static entity
-transform. Ported from `Fanyu_module`, essentially unchanged — see
-[3. Under the hood](#3-under-the-hood) for the one cosmetic normalization
-made and why nothing else needed to change.
+transform — see [3. Under the hood](#3-under-the-hood).
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Fanyu_module`, essentially unchanged (see §3), in the same
+batch as [Wander In Band](WANDER-IN-BAND-FEATURE-GUIDE.md) — the two are
+nevertheless independent, unrelated features.
+
+<!-- /project-specific -->
 
 Files:
 
@@ -15,29 +36,19 @@ src/a-frame-components/follow-node.ts
 examples/follow-node-usage.html   # scene wiring + full attribute reference
 ```
 
-No assets. No dependency on any other feature on this branch, and nothing
-here depends on `wander-in-band` either, despite both being ported from the
-same source branch in the same batch — they're independent, unrelated
-features (see `WANDER-IN-BAND-FEATURE-GUIDE.md`).
+No assets. No dependency on any other feature on this branch.
 
 ## 1. Step-by-step: adding this to a new project
 
 1. **Copy the file** — `follow-node.ts` — into your project's own
    `src/a-frame-components/`. No path changes, no data files.
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import followNode from "./a-frame-components/follow-node";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "follow-node": followNode
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Wire it into the scene** — see
    [2. Entities & attributes](#2-entities--attributes) or copy directly
@@ -71,16 +82,6 @@ for free, same as any other A-Frame parent/child transform.
 
 ## 3. Under the hood
 
-### What changed from the source
-
-Only one thing, and it's cosmetic: the source accessed three.js via
-`declare const AFRAME: any; const THREE = (AFRAME as any).THREE;`; this
-port uses the bare `declare const THREE: any;` every other component on
-this branch already uses (`window.THREE`, which A-Frame also sets — the
-same object `AFRAME.THREE` points at). No behavior change, just matching
-this branch's established style. Nothing else was touched — see
-[the note on why](#why-no-functional-changes-were-needed) below.
-
 ### How the tracking actually works
 
 `init()` finds the target's loaded glTF root (`target.getObject3D("mesh")`
@@ -103,14 +104,27 @@ it to `position` — so this entity behaves like a normal, correctly-parented
 A-Frame child regardless of where in the scene graph it actually sits
 relative to the target.
 
-### Why no functional changes were needed
+### Generic by design
 
-Checked deliberately, not skipped: `target`/`node` are both required,
-freely-set attributes with no hardcoded defaults tied to any specific
-model or scene — there's no camera-position compensation, no fixed node
-name, no assumption about what the target model actually is beyond "an
-entity with a loaded glTF." The component was already exactly as generic
-as this port needed it to be.
+`target`/`node` are both required, freely-set attributes with no hardcoded
+defaults tied to any specific model or scene — there's no camera-position
+compensation, no fixed node name, no assumption about what the target model
+actually is beyond "an entity with a loaded glTF."
+
+<!-- project-specific -->
+#### Project context: `Fanyu_module`
+
+##### What changed from the source
+
+Only one thing, and it's cosmetic: the source accessed three.js via
+`declare const AFRAME: any; const THREE = (AFRAME as any).THREE;`; the
+port uses the bare `declare const THREE: any;` every other component on
+this branch already uses (`window.THREE`, which A-Frame also sets — the
+same object `AFRAME.THREE` points at). No behavior change. Nothing else
+needed to change — the source was already as generic as described above
+(checked deliberately, not skipped).
+
+<!-- /project-specific -->
 
 ## 4. Incompatibilities, risks & troubleshooting
 

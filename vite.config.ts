@@ -4,6 +4,8 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import { fileURLToPath, URL } from "node:url";
 import { readdirSync, readFileSync, existsSync, statSync, renameSync, createReadStream } from "node:fs";
 import { join, parse, extname, sep } from "node:path";
+import { usedComponents } from "./scripts/used-components";
+import { devQrCode } from "./scripts/dev-qr-code";
 
 const ASSETS_SRC = fileURLToPath(new URL("./src/assets", import.meta.url));
 // Image-target files (the JSON + its *_luminance/_cropped/… images) produced by
@@ -58,7 +60,7 @@ function readImageTargetFiles(): string[] {
  * Serve a static directory at a URL prefix from a Connect middleware stack.
  * Honours HTTP `Range` requests (206 + `Content-Range`): iOS/Safari refuses to
  * play a `<video>`/`<audio>` source that isn't served with range support, so
- * without this the preview's `jellyfish-video.mp4` silently fails on iPhone —
+ * without this a video asset silently fails in the preview on iPhone —
  * the primary AR test device. Files are streamed, not buffered whole.
  */
 function serveDir(server: any, prefix: string, root: string) {
@@ -107,6 +109,54 @@ function serveDir(server: any, prefix: string, root: string) {
  * - serves `/assets/*` from `src/assets` during `vite dev` (preview)
  * - on build, copies each asset into `dist/assets/` and writes `dist/manifest.json`
  */
+/**
+ * Automatic A-Frame component registration: `virtual:used-components` imports
+ * exactly the components in src/a-frame-components/ that the module uses
+ * (file name = component name; see scripts/used-components.ts) and exports
+ * them as { name: definition } — src/manifest.ts spreads that into
+ * `components`. Unused components are neither bundled nor registered.
+ * The dev server recomputes the list when a file in src/ is added, removed
+ * or changed, and reloads the page if it changed.
+ */
+const USED_COMPONENTS_ID = "virtual:used-components";
+const RESOLVED_USED_COMPONENTS_ID = "\0" + USED_COMPONENTS_ID;
+function autoComponents() {
+  const srcDir = fileURLToPath(new URL("./src", import.meta.url));
+  const listKey = () => [...usedComponents(srcDir).keys()].join(",");
+  let lastKey = "";
+  return {
+    name: "used-components",
+    resolveId(id: string) {
+      if (id === USED_COMPONENTS_ID) return RESOLVED_USED_COMPONENTS_ID;
+    },
+    load(id: string) {
+      if (id !== RESOLVED_USED_COMPONENTS_ID) return;
+      const used = usedComponents(srcDir);
+      lastKey = [...used.keys()].join(",");
+      const entries = [...used];
+      return [
+        ...entries.map(([, file], i) => `import c${i} from ${JSON.stringify(file)};`),
+        `export const usedComponents = {`,
+        ...entries.map(([name], i) => `  ${JSON.stringify(name)}: c${i},`),
+        `};`,
+        `export default usedComponents;`
+      ].join("\n");
+    },
+    configureServer(server: any) {
+      const onChange = (file: string) => {
+        if (!file.startsWith(srcDir) || !/\.(vue|ts)$/.test(file)) return;
+        if (listKey() === lastKey) return;
+        const mod = server.moduleGraph.getModuleById(RESOLVED_USED_COMPONENTS_ID);
+        if (mod) server.moduleGraph.invalidateModule(mod);
+        server.ws.send({ type: "full-reload" });
+      };
+      server.watcher.on("add", onChange);
+      server.watcher.on("unlink", onChange);
+      server.watcher.on("change", onChange);
+    }
+  };
+}
+
 function arModuleAssets() {
   return {
     name: "ar-module-assets",
@@ -175,7 +225,8 @@ export default defineConfig(async ({ command, mode }) => {
         }
       }
     }),
-    arModuleAssets()
+    arModuleAssets(),
+    autoComponents()
   ];
 
   if (isAr) {
@@ -197,6 +248,9 @@ export default defineConfig(async ({ command, mode }) => {
         });
       }
     });
+
+    // Prints a QR code of the network address for opening the preview on a phone.
+    plugins.push(devQrCode());
 
     // Standalone AR build: emit the page as index.html (not ar.html) so serving
     // dist-ar/ resolves the AR app at the root. Renamed on disk after the bundle
@@ -230,12 +284,21 @@ export default defineConfig(async ({ command, mode }) => {
   //    pin @8thwall/xrextras and host it locally. The library build doesn't need
   //    it — the host provides xrextras at runtime.
   //  - the 8th Wall engine (xr.js): AR only, exactly like the host app.
+  //  - 8Frame (patched A-Frame): AR only. NOT the build at cdn.8thwall.com/web/
+  //    aframe/ — that's a different, much smaller file for 8th Wall's classic
+  //    commercial backend and throws "No valid session manager to handle this
+  //    session" against @8thwall/engine-binary's session-manager protocol. The
+  //    build that actually pairs with engine-binary isn't on npm; it ships only
+  //    in the `external/scripts/` folder of 8th Wall's example projects (e.g.
+  //    github.com/8thwall/aframe-world-effects-example), so it's vendored here
+  //    instead of pinned via package.json.
   const copyTargets: { src: string; dest: string }[] = [];
   if (!isLibBuild) {
     copyTargets.push({ src: "node_modules/@8thwall/xrextras/dist/*", dest: "external/xrextras" });
   }
   if (isAr) {
     copyTargets.push({ src: "node_modules/@8thwall/engine-binary/dist/*", dest: "external/xr" });
+    copyTargets.push({ src: "lib/vendor/8frame-1.5.0.min.js", dest: "external/scripts" });
   }
   if (copyTargets.length) {
     plugins.push(viteStaticCopy({ targets: copyTargets }));

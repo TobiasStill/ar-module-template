@@ -55,6 +55,15 @@
                         a non-looping ("once") clip finishes, instead of
                         snapping back to the start.
 
+  crossfade             number (seconds), default 0 = off. Only with loop:
+                        "repeat". For animations that weren't authored to
+                        loop (e.g. a baked cloth simulation): the last
+                        `crossfade` seconds blend into the start, and the
+                        loop restarts `crossfade` seconds in — no jump at
+                        the loop point. Changes the motion near the loop
+                        point; a deliberate per-model choice.
+                        e.g. trim-loop-clip="loop: repeat; crossfade: 0.5"
+
   Nothing to call — starts automatically once the model's clips are
   available. Changing any attribute at runtime rebuilds and restarts
   playback with the new settings.

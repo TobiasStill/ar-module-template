@@ -4,6 +4,7 @@ import { manifest } from "../src/manifest";
 import {
   registerManifestComponents,
   applyCameraSettings,
+  applyHostLights,
   configureImageTargets,
   assetElement
 } from "./host-runtime";
@@ -70,17 +71,33 @@ const ArPreviewApp = {
           return h(el.tag, el.attrs);
         })
       ),
+      // The host's two scene lights, grouped as in the host (ArScene.vue in
+      // ar-demo-backend), so the module previews under the light it gets in
+      // the app — and `hostLights: false` (applyHostLights) can switch them off.
+      h("a-entity", { id: "host-lights" }, [
+        h("a-light", { type: "ambient", color: "#BBB" }),
+        h("a-light", { type: "directional", color: "#FFF", intensity: "0.6", "cast-shadow": "true", position: "-0.5 1 1" })
+      ]),
+      // Same start position as the host's <a-camera> (ArScene.vue in
+      // ar-demo-backend). 8th Wall keeps a non-zero start position as the
+      // camera's starting pose; with "0 0 0" it substitutes its own height
+      // (~2, measured), which put the module ~1.65 lower relative to the
+      // viewer than in the app. See README "Where a module sits".
       h("a-camera", {
         id: "camera",
-        position: "0 0 0",
+        position: "0 0.35 0.8",
         raycaster: "objects: .cantap",
         cursor: "fuse: false; rayOrigin: mouse;"
       })
     ];
 
     if (assetsReady.value) {
-      // Placed like the host (AR_MODULE_POSITION) so the module previews where it
-      // would actually appear in the app.
+      // Placed like the host (AR_MODULE_POSITION), for every module — image-
+      // target modules included, since the host doesn't skip it for them
+      // either. Their tracked content cancels it with `world-origin`; one
+      // that forgets to is shifted here exactly as in the app, so it shows
+      // up in the preview instead of only after export. See README "Where a
+      // module sits".
       children.push(
         h("a-entity", { id: "module-root", position: "0 1.6 -3" }, [
           h(ArModule, { arModule: mockArModule })
@@ -94,7 +111,14 @@ const ArPreviewApp = {
         "xrextras-loading": "",
         "xrextras-runtime-error": "",
         "xrextras-gesture-detector": "",
-        xrweb: "disableWorldTracking: false",
+        // TEMP DEBUG — `allowedDevices: any` is missing here; a sibling
+        // project (ar-hfg-template) hit the exact same "camera runs, image
+        // target never loads" symptom and its own confirmed-working fix
+        // (changelog260623-image-tracking-fix.md) needed both this AND no
+        // `disableWorldTracking` at all — that doc explicitly warns
+        // `disableWorldTracking: true` disables the SLAM pipeline image
+        // tracking depends on, which matches our own failed test with `true`.
+        xrweb: "allowedDevices: any",
         "xr-mode-ui": "enabled: false",
         renderer: "colorManagement: true"
       },
@@ -130,6 +154,7 @@ nextTick(() => {
       // camera settings, and feed its image targets to XR8 before mounting.
       registerManifestComponents(manifest);
       applyCameraSettings(document.querySelector("a-camera"), manifest.camera || {});
+      applyHostLights(manifest);
       configureImageTargets((window as any).XR8, manifest.imageTargets || []);
       assetsReady.value = true;
     };

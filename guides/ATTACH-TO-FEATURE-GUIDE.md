@@ -1,10 +1,32 @@
 # Attach-to feature guide
 
+<!-- overview -->
+## Overview
+
+Glues one object to another without making it its child: wherever the
+target goes, the attached object goes along, keeping the same distance. A
+light can hover above the visitor's head wherever they walk, a label can
+float next to a moving figure, a sparkle can trail a flying object. Only
+the position follows — the attached object keeps its own rotation and
+size.
+
+<!-- /overview -->
+
+## Technical summary
+
 Makes an entity follow another entity's world position (plus a fixed
 world-space offset), every frame — even if it isn't that entity's DOM
-child. Applicable to any entity. Ported from `Gyumin_module` unchanged —
-already fully generic in the source, see
+child. Applicable to any entity — see
 [3. Under the hood](#3-under-the-hood).
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Gyumin_module` unchanged — already fully generic there (see
+§3 "What changed from the source"). The `space: parent` option was added
+later from the Augmented Bahnhofsviertel ports' `legacy-attach`.
+
+<!-- /project-specific -->
 
 Files:
 
@@ -22,19 +44,12 @@ putting this on the same entity as `wander-in-band` or `proximity-wave`.
 1. **Copy the file** — `attach-to.ts` — into your project's own
    `src/a-frame-components/`. No path changes, no data files.
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import attachTo from "./a-frame-components/attach-to";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "attach-to": attachTo
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Wire it into the scene** — see
    [2. Entities & attributes](#2-entities--attributes) or copy directly
@@ -50,6 +65,7 @@ putting this on the same entity as `wander-in-band` or `proximity-wave`.
 |---|---|---|---|
 | `target` | selector | — | The entity to follow. Resolved on every tick, not cached — works even if the target mounts *after* this entity does. |
 | `offset` | vec3 | `{x:0, y:0, z:0}` | Added to the target's world position, in world-space units, before converting into this entity's own parent space. |
+| `space` | string | `world` | `world`: `offset` in world units/axes (as above). `parent`: `offset` added *after* converting into the parent's space, so it scales and turns with the parent — what `xrextras-attach` effectively did for elements sharing a parent, and what a scaled scene ([Placement](PLACEMENT-FEATURE-GUIDE.md) with `referenceHeight`) needs. |
 
 ```html
 <a-entity
@@ -71,22 +87,34 @@ result lands correctly regardless of what transform this entity's own
 parent carries, without this component needing to know or care about that
 parent's transform itself.
 
-Originally built as this project's stand-in for 8th Wall's
-`xrextras-attach`, specifically so something (a light, in the source) could
-track the host-provided camera even though it isn't a DOM child of it —
-`target: #camera` is the common case, but `target` accepts any resolvable
-selector, so this works for tracking any entity, not just the camera.
+It is the template's stand-in for 8th Wall's `xrextras-attach`: something
+(e.g. a light) can track the host-provided camera even though it isn't a DOM
+child of it. `target: #camera` is the common case, but `target` accepts any
+resolvable selector, so this works for tracking any entity, not just the
+camera. Every tunable (`target`, `offset`, `space`) is a freely-set schema
+attribute; nothing is hardcoded to a specific entity id, naming convention,
+or scene structure. The target is resolved lazily on every tick (rather
+than cached once in `init()`), so it may mount later than this entity.
 
-### What changed from the source
+<!-- project-specific -->
+### Project context: `Gyumin_module`
 
-Nothing — checked deliberately, not skipped. Every tunable (`target`,
-`offset`) is a freely-set schema attribute; nothing hardcoded to a specific
-entity id, naming convention, or scene structure. The lazy per-tick target
-resolution (rather than caching it once in `init()`) was already a
-deliberate, generic design choice in the source, not something added by
-this port.
+#### What changed from the source
+
+Nothing — checked deliberately, not skipped. In `Gyumin_module` it attached
+a light to the camera; the lazy per-tick target resolution was already a
+deliberate, generic design choice there, not something added by the port.
+
+<!-- /project-specific -->
 
 ## 4. Incompatibilities, risks & troubleshooting
+
+### Shares the entity transform with Placement & Gestures — don't combine on one entity
+
+[`place-in-front`](PLACEMENT-FEATURE-GUIDE.md) writes position/rotation/scale
+on every placement, and [`gesture-control`/`hold-drag`](GESTURES-FEATURE-GUIDE.md)
+write them while a gesture runs. Put this component on a parent or child of
+such an entity, never on the same one (found while adding those features).
 
 ### Real conflict with anything else that writes `position` every tick
 

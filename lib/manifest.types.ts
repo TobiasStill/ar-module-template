@@ -41,4 +41,13 @@ export interface Manifest {
   components?: Record<string, ComponentDefinition>;
   /** XR8 image-target descriptors (the JSON exported by the 8th Wall target tool). */
   imageTargets?: unknown[];
+  /**
+   * false = the module brings its complete lighting: the host switches its own
+   * scene lights (the #host-lights group in ArScene.vue) off while the module
+   * is shown and back on at unmount. Default true. Done by the host — the
+   * module itself contains no code for it (previews: lib/host-runtime.ts).
+   * Convention: set false ONLY in a module whose scene has lights of its own
+   * (README, "Host lights") — without them the module turns dark in the host.
+   */
+  hostLights?: boolean;
 }

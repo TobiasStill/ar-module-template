@@ -1,11 +1,32 @@
 # Random field feature guide
 
+<!-- overview -->
+## Overview
+
+Plants a whole meadow from a single flower. You build one object — or a
+few different ones — and the feature scatters many copies of them across
+an area in front of the visitor, like seeds thrown over a field: never
+bunched too closely, never too far apart, each copy turned and tilted a
+little differently so the result looks natural rather than lined up. You
+decide how many copies, how wide the field is, and how much the copies may
+vary.
+
+<!-- /overview -->
+
+## Technical summary
+
 Scatters clones of one or more referenced entities across a rectangular
 area, using Poisson-disk (Bridson) sampling so both a minimum AND maximum
 spacing between neighbours are honoured exactly, with a configurable copy
-count per referenced entity. Ported from `Gyumin_module`'s
-`glowstick-field`, substantially reworked — see
-[3. Under the hood](#3-under-the-hood) for exactly what changed and why.
+count per referenced entity — see [3. Under the hood](#3-under-the-hood).
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Gyumin_module`'s `glowstick-field`, substantially reworked
+(details in §3).
+
+<!-- /project-specific -->
 
 Files:
 
@@ -13,7 +34,7 @@ Files:
 src/a-frame-components/random-field.ts
 examples/random-field-usage.html   # scene wiring + full attribute reference
 examples/random-field-lod-billboard-proximity-wave-scene.html # combined with
-                                    # the other three Gyumin_module features
+                                    # LOD + Billboard and Proximity Wave
 ```
 
 No assets. Independent of every other feature on this branch — it only
@@ -31,19 +52,12 @@ three combined into one scene.
 1. **Copy the file** — `random-field.ts` — into your project's own
    `src/a-frame-components/`. No path changes, no data files.
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import randomField from "./a-frame-components/random-field";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "random-field": randomField
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Author the entities you want scattered**, anywhere in your scene,
    each with its own `id`. A referenced entity can be a single mesh or a
@@ -92,39 +106,42 @@ same field and shuffled together) and the `minCopyDistance` behavior.
 
 ## 3. Under the hood
 
-### What changed from the source, and why
+### Clone what the artist authored
 
-The source component did two jobs bundled together: (a) Poisson-disk
-placement with spacing/copies, and (b) auto-discovering assets by a
-`PREFIX_01`/`PREFIX_LICHT`/`PREFIX_PNG` naming convention and
-*programmatically building* a whole LOD/billboard subtree from scratch for
-each discovered type. This port keeps only (a). (b) is now entirely up to
-the artist — author whatever structure you want (a single mesh, an LOD
-group, anything) directly on a plain entity, give it an id, and reference
-that id in `items`. This is a direct implementation of what was asked for
-("choose the entities that go into the field by id"), not a judgment call —
-see `ADDING-FEATURES-WORKFLOW.md`.
+The component only does placement: Poisson-disk sampling with
+spacing/copies. What gets placed is entirely up to the artist — author
+whatever structure you want (a single mesh, an LOD group, anything)
+directly on a plain entity, give it an id, and reference that id in
+`items`. Two consequences:
 
-Two smaller, necessary consequences of switching from "build from scratch"
-to "clone an existing, artist-authored entity":
-
-- **Referenced entities are hidden after cloning** (confirmed design
-  choice, not assumed) — otherwise the source entity would ALSO render at
-  wherever it happens to be authored in the scene, in addition to every
-  placed clone.
+- **Referenced entities are hidden after cloning** (a deliberate design
+  choice) — otherwise the source entity would ALSO render at wherever it
+  happens to be authored in the scene, in addition to every placed clone.
 - **Rotation and scale compose with the source's own authored values**,
-  rather than being set from scratch. The original had nothing to compose
-  with (it built instances with no prior transform); once cloning an
-  artist-authored entity, respecting whatever baseline transform that
-  entity already has (e.g. a fixed correction tilt, or a scale the artist
-  already tuned) is the more generically useful default — position is the
-  one exception, since "where in the field" has no meaningful reading as
-  an offset from wherever the source happens to sit in the editor, so it's
-  still always fully field-computed.
+  rather than being set from scratch — respecting whatever baseline
+  transform that entity already has (e.g. a fixed correction tilt, or a
+  scale the artist already tuned) is the more generically useful default.
+  Position is the one exception, since "where in the field" has no
+  meaningful reading as an offset from wherever the source happens to sit
+  in the editor, so it's always fully field-computed.
 
-The Poisson-disk sampling algorithm itself, the `minCopyDistance`
-same-source-spacing logic, and the fixed-width/free-depth strip shape are
-all unchanged from the source.
+<!-- project-specific -->
+#### Project context: `Gyumin_module`
+
+##### What changed from the source, and why
+
+The source `glowstick-field` did two jobs bundled together: (a)
+Poisson-disk placement with spacing/copies, and (b) auto-discovering assets
+by a `PREFIX_01`/`PREFIX_LICHT`/`PREFIX_PNG` naming convention and
+*programmatically building* a whole LOD/billboard subtree from scratch for
+each discovered type. The port kept only (a), as requested ("choose the
+entities that go into the field by id") — not a judgment call, see
+`ADDING-FEATURES-WORKFLOW.md`. The source had nothing to compose rotation
+and scale with (it built instances with no prior transform). The
+Poisson-disk algorithm, the `minCopyDistance` logic, and the
+fixed-width/free-depth strip shape are unchanged from the source.
+
+<!-- /project-specific -->
 
 ### Why cloning re-applies every component's live data, not just `cloneNode(true)`
 
@@ -168,6 +185,13 @@ narrower than `minDistance`), a safety net keeps placing straight back at
 `maxDistance` spacing rather than silently placing fewer points than asked.
 
 ## 4. Incompatibilities, risks & troubleshooting
+
+### Related: Spawn Sequence
+
+Random Field scatters all copies at once, statically. For copies that appear
+over time (interval/timeline, with a bounce and optional sound) use
+[Spawn Sequence](SPAWN-SEQUENCE-FEATURE-GUIDE.md) instead — the two don't
+interact.
 
 ### Combining with LOD + Billboard
 

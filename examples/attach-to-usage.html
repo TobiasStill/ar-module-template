@@ -45,4 +45,14 @@
   offset   vec3, default "0 0 0". Added to the target's world position, in
            world-space units, before converting into this entity's own
            parent space. "x y z" syntax, e.g. offset: "0 1 0".
+
+  space    "world" (default) | "parent". world: offset in world units/axes
+           (as above). parent: offset added AFTER converting into this
+           entity's parent space — it scales and turns with the parent
+           (e.g. inside a place-in-front scene with referenceHeight:
+           "1 unit above the camera" in the scene's own units).
 -->
+
+<!-- Example 3 — a light 2 scene units above and 1 behind the camera, in a
+     scaled scene's own units:
+     <a-entity light="type: directional" attach-to="target: #camera; offset: 0 2 1; space: parent"></a-entity> -->

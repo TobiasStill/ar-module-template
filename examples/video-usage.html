@@ -1,0 +1,60 @@
+<!--
+  VIDEO — usage & wiring examples
+  =================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from (into ArModule.vue's <template>, plus a tap handler).
+
+  Component involved (src/a-frame-components/video-control.ts):
+    video-control   On any entity (usually the one showing the video).
+                    Starts/pauses the referenced <video> asset on events,
+                    sets muted/loop first, pauses in the background.
+
+  Put the .mp4 in src/assets/ — the host injects it as
+  <video muted loop playsinline>, so a video WITH sound must be started
+  from a tap with `muted: false` (iOS allows unmuted playback only inside
+  a user gesture).
+-->
+
+<!-- ============================================================
+     Example 1 — four screens around the viewer, started together
+     from one PLAY tap; only the first one with sound.
+     ============================================================ -->
+<a-entity place-in-front="distance: 0">
+  <a-entity geometry="primitive: plane; width: 1.6; height: 0.9" position="0 1.4 -3"
+            material="src: #Video1; shader: flat" video-control="video: #Video1; muted: false"></a-entity>
+  <a-entity geometry="primitive: plane; width: 1.6; height: 0.9" position="3 1.4 0" rotation="0 -90 0"
+            material="src: #Video2; shader: flat" video-control="video: #Video2"></a-entity>
+  <a-entity geometry="primitive: plane; width: 1.6; height: 0.9" position="0 1.4 3" rotation="0 180 0"
+            material="src: #Video3; shader: flat" video-control="video: #Video3"></a-entity>
+  <a-entity geometry="primitive: plane; width: 1.6; height: 0.9" position="-3 1.4 0" rotation="0 90 0"
+            material="src: #Video4; shader: flat" video-control="video: #Video4"></a-entity>
+</a-entity>
+<!-- ArOverlay control (examples/ar-overlay-usage.html):
+       { id: "play", html: "P L A Y",
+         onClick: () => document.querySelector("a-scene").emit("video-play") } -->
+
+<!-- ============================================================
+     Example 2 — a silent background loop that starts by itself.
+     ============================================================ -->
+<a-videosphere src="#Clouds" radius="20" video-control="video: #Clouds; autoplay: true"></a-videosphere>
+
+<!-- ============================================================
+     Example 3 — two videos on one entity, each with its own event.
+     ============================================================ -->
+<a-entity video-control__intro="video: #Intro; playOn: intro-play"
+          video-control__loop="video: #Loop; playOn: loop-play"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE   (multiple: video-control__name)
+  ====================
+    video            selector  —            The <video> asset.
+    muted            boolean   true         Set before play(); false = with sound
+                                            (needs a tap).
+    loop             boolean   true
+    autoplay         boolean   false        Start on init (only works muted).
+    playOn           string    video-play   Event (on the entity or the scene) that starts it.
+    pauseOn          string    video-pause  Event that pauses it.
+    pauseWhenHidden  boolean   true         Pause in the background, resume after.
+
+    Events out:  video-started { video },  video-blocked { video }
+-->

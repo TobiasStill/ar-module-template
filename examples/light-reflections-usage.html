@@ -1,0 +1,69 @@
+<!--
+  LIGHT & REFLECTIONS — usage & wiring examples
+  ===============================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from (into ArModule.vue's <template>).
+
+  Components involved:
+    cubemap-realtime  (src/a-frame-components/cubemap-realtime.ts)
+                      Live reflections: the 8th Wall camera image rendered
+                      into a cube map every frame. Needs XR8 (dev:ar/host).
+    cubemap-static    (src/a-frame-components/cubemap-static.ts)
+                      Reflections from six images (asset ids).
+    xr-light          (src/a-frame-components/xr-light.ts)
+                      A light whose intensity follows the measured real-
+                      world brightness (8th Wall light estimation).
+    —                 env-map-shared.ts: clones materials, writes envMap.
+
+  Reflections only show on materials that reflect: metallic and/or smooth
+  (low roughness). A matte, non-metallic model barely changes.
+  Don't put cubemap-static and cubemap-realtime on two copies of the SAME
+  model in one scene (see the guide §4).
+-->
+
+<!-- ============================================================
+     Example 1 — a chrome sculpture mirroring the real surroundings,
+     lit by a light that dims/brightens with the room.
+     ============================================================ -->
+<a-entity gltf-model="#ChromeSculpture" cubemap-realtime></a-entity>
+<a-entity light="type: directional; intensity: 1" xr-light position="1 3 2"></a-entity>
+<a-light type="ambient" xr-light="min: 0.2; max: 1.2"></a-light>
+
+<!-- ============================================================
+     Example 2 — a fixed, designed reflection from six images
+     (put posx.jpg … negz.jpg in src/assets/ → ids posx … negz).
+     Only the material named "Glass" reflects, a bit stronger.
+     ============================================================ -->
+<a-entity gltf-model="#Bottle"
+          cubemap-static="posx: #posx; negx: #negx; posy: #posy;
+                          negy: #negy; posz: #posz; negz: #negz;
+                          materials: Glass; envMapIntensity: 1.5"></a-entity>
+
+<!-- ============================================================
+     Example 3 — softer live reflections (lower resolution, dimmer).
+     ============================================================ -->
+<a-entity gltf-model="#Pebble" cubemap-realtime="size: 128; envMapIntensity: 0.6"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  cubemap-realtime
+    envMapIntensity  number  1     Reflection strength on the materials.
+    size             int     256   Cube render target size per face.
+
+  cubemap-static   (multiple: cubemap-static__glass, … on one entity)
+    posx … negz       string   #posx … #negz   Face images: asset id or URL.
+    materials         array    []     Only materials with these names; empty
+                                      = every material with an envMap slot.
+    reflectivity      number   1      0–1 (Phong/Lambert-style materials).
+    envMapIntensity   number   1      Reflection strength (standard materials).
+    colorSpace        string   linear linear (JPEG values as-is, like the
+                                      host's three r137) | srgb (darker).
+    enableBackground  boolean  false  Also show the cube as scene background.
+    extension, format          —      Accepted for 8th Wall markup, ignored.
+
+  xr-light   (on any entity with a `light`)
+    min   number  0   Lower bound of the intensity.
+    max   number  2   Upper bound. intensity = clamp(1 + exposure, min, max).
+-->

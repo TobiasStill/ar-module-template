@@ -1,0 +1,45 @@
+<!--
+  TAP ANIMATION — usage & wiring examples
+  =========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/tap-animation.ts):
+    tap-animation   On an entity with a gltf-model (that has animations).
+                    A tap (the host's cursor click on .cantap) plays the
+                    clip via aframe-extras' animation-mixer, and the entity's
+                    own `sound`.
+-->
+
+<!-- ============================================================
+     Example 1 — shells that open once when tapped and play their
+     sound (the #20 Solid Dream Level pattern); taps only count
+     after an audio-unlock button set enabled: true.
+     ============================================================ -->
+<a-entity class="shell" gltf-model="#Shell" position="0 0 -2"
+          sound="src: #ShellSound; positional: true; refDistance: 1"
+          tap-animation="enabled: false"></a-entity>
+<a-entity class="shell" gltf-model="#Shell" position="1 0 -3" rotation="0 40 0"
+          sound="src: #ShellSound; positional: true; refDistance: 1"
+          tap-animation="enabled: false"></a-entity>
+<!-- In the PLAY control's onClick (after unlocking audio):
+       document.querySelectorAll('[tap-animation]')
+         .forEach((el) => el.setAttribute('tap-animation', 'enabled', true)); -->
+
+<!-- ============================================================
+     Example 2 — a named clip that plays again on every tap, no sound.
+     ============================================================ -->
+<a-entity gltf-model="#Bell" tap-animation="clip: Ring; once: false; clampWhenFinished: false; sound: false"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+    clip               string   *      Clip name (wildcards as in animation-mixer).
+    loop               string   once   once | repeat | pingpong.
+    clampWhenFinished  boolean  true   Stay on the last frame.
+    once               boolean  true   Only the first (enabled) tap plays.
+    sound              boolean  true   Also (re)start the entity's `sound`.
+    enabled            boolean  true   Ignore taps while false.
+
+    Events out:  tap-animation-played
+-->

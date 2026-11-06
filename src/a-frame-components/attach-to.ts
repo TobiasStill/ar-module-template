@@ -18,10 +18,20 @@ declare const THREE: any;
 // guides/ATTACH-TO-FEATURE-GUIDE.md's incompatibilities section before combining
 // with wander-in-band, proximity-wave, or anything else that also writes
 // this entity's position every tick.
+//
+// `space` (added from the Augmented Bahnhofsviertel ports' legacy-attach):
+// where `offset` is measured. `world` (default, the original behaviour):
+// world units and axes. `parent`: this entity's parent space — the offset
+// is added after converting the target's position into the parent, so it
+// scales and turns with the parent. That's what 8th Wall's
+// `xrextras-attach` effectively did for elements under the same parent, and
+// what a scaled scene (e.g. place-in-front with referenceHeight) needs to
+// keep "1 unit above the camera" in its own units.
 export default {
   schema: {
     target: { type: "selector" },
-    offset: { type: "vec3", default: { x: 0, y: 0, z: 0 } }
+    offset: { type: "vec3", default: { x: 0, y: 0, z: 0 } },
+    space: { default: "world", oneOf: ["world", "parent"] }
   },
 
   init() {
@@ -35,14 +45,22 @@ export default {
     if (!targetEl || !targetEl.object3D) return;
 
     targetEl.object3D.getWorldPosition(self.worldPos);
-    self.worldPos.x += self.data.offset.x;
-    self.worldPos.y += self.data.offset.y;
-    self.worldPos.z += self.data.offset.z;
+    const { offset, space } = self.data;
+    if (space === "world") {
+      self.worldPos.x += offset.x;
+      self.worldPos.y += offset.y;
+      self.worldPos.z += offset.z;
+    }
 
     // Convert the desired world position into this entity's parent space, so it
     // lands correctly regardless of any parent transform.
     const parent = self.el.object3D.parent;
     if (parent) parent.worldToLocal(self.worldPos);
+    if (space === "parent") {
+      self.worldPos.x += offset.x;
+      self.worldPos.y += offset.y;
+      self.worldPos.z += offset.z;
+    }
     self.el.object3D.position.copy(self.worldPos);
   }
 } as ComponentDefinition;

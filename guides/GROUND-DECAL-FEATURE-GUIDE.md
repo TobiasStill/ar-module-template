@@ -1,11 +1,31 @@
 # Ground-decal feature guide
 
+<!-- overview -->
+## Overview
+
+Lays a flat picture on the floor under an object — a painted shadow, a
+puddle, a glowing ring, a footprint — and keeps it lying flat even if the
+object above leans, tilts or spins. Like a shadow at noon, it stays right
+underneath and never tips over with its owner. It also stays crisp in the
+distance instead of fading into fog like the rest of the scene, so it reads
+as something drawn on the ground.
+
+<!-- /overview -->
+
+## Technical summary
+
 Keeps a decal plane flat on the ground directly under its parent entity's
 pivot, regardless of how the parent is rotated/tilted, and excludes it from
 scene fog so it doesn't fade with distance the way ordinary geometry does.
 Applicable to any entity with a parent — a `gltf-model` or a plain A-Frame
-primitive. Ported from `Gyumin_module` — see
-[3. Under the hood](#3-under-the-hood) for two real fixes this port made.
+primitive — see [3. Under the hood](#3-under-the-hood).
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Gyumin_module`; the port made two real fixes (see §3).
+
+<!-- /project-specific -->
 
 Files:
 
@@ -22,19 +42,12 @@ No assets. Requires a parent entity — see
 1. **Copy the file** — `ground-decal.ts` — into your project's own
    `src/a-frame-components/`. No path changes, no data files.
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import groundDecal from "./a-frame-components/ground-decal";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "ground-decal": groundDecal
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Wire it into the scene** — see
    [2. Entities & attributes](#2-entities--attributes) or copy directly
@@ -78,30 +91,33 @@ fog computation entirely (so it doesn't dim with distance the way ordinary
 geometry does — a decal is meant to read as flat on a surface, not as an
 object receding into haze).
 
-### Two fixes made during this port
+### Primitive support and clone-before-mutate
 
-**Primitive support for the fog exclusion.** The source only listened for
-`gltf-model`'s own `model-loaded`, which never fires for a plain A-Frame
-primitive — the same gap found and fixed in every other material-touching
-component on this branch (see
-[RENDER-ORDER-FEATURE-GUIDE.md §3](RENDER-ORDER-FEATURE-GUIDE.md#3-under-the-hood)
-for the original finding). Switched to `object3dset` plus an immediate
-check.
+**Primitive support for the fog exclusion.** `gltf-model`'s own
+`model-loaded` never fires for a plain A-Frame primitive, so the component
+listens for `object3dset` plus an immediate check, like every other
+material-touching component in the template (see
+[RENDER-ORDER-FEATURE-GUIDE.md §3](RENDER-ORDER-FEATURE-GUIDE.md#3-under-the-hood)).
 
-**Clone before mutate — a real, previously-latent bug.** The source set
-`fog = false` directly on each mesh's material **in place**, without
-cloning it first. A glTF asset loaded via `gltf-model` shares one material
-object across every instance of that asset unless something clones it
-first — see
+**Clone before mutate.** A glTF asset loaded via `gltf-model` shares one
+material object across every instance of that asset unless something
+clones it first — see
 [RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md §4.2](../cross-feature-reference-docs/RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md#42-materials-must-be-cloned-before-mutating).
-Concretely: two `ground-decal` instances placed at different distances but
-sharing the same decal asset would, on the source as written, share one
-material — disabling fog on the nearer instance would silently also
-disable it on the farther one, which should still visibly fade with
-distance. This port clones each material on first encounter (marked via
+Setting `fog = false` in place would let two `ground-decal` instances that
+share one decal asset share that change too. The component therefore
+clones each material on first encounter (marked via
 `userData.groundDecalOwner`, matching the ownership-marker pattern
-[`material-properties`](MATERIAL-PROPERTIES-FEATURE-GUIDE.md) already
-uses) so every instance owns an independent copy.
+[`material-properties`](MATERIAL-PROPERTIES-FEATURE-GUIDE.md) uses), so
+every instance owns an independent copy.
+
+<!-- project-specific -->
+#### Project context: `Gyumin_module`
+
+Both points above were fixes made during the port: the source only
+listened for `model-loaded` and set `fog = false` on the shared material in
+place.
+
+<!-- /project-specific -->
 
 ## 4. Incompatibilities, risks & troubleshooting
 

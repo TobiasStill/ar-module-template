@@ -70,6 +70,20 @@ export function applyCameraSettings(
 }
 
 /**
+ * Switch the host's own scene lights (the `#host-lights` group) off while the
+ * module is shown if its manifest says `hostLights: false`, returning a
+ * teardown that switches them back on — mirrors the host's ArModule.vue.
+ * Hidden, not removed: three.js skips invisible lights, shadows included.
+ */
+export function applyHostLights(manifest: Pick<Manifest, "hostLights">): () => void {
+  if (manifest.hostLights !== false) return () => {};
+  const hostLights = document.getElementById("host-lights");
+  if (!hostLights) return () => {};
+  hostLights.setAttribute("visible", "false");
+  return () => hostLights.setAttribute("visible", "true");
+}
+
+/**
  * Feed image targets to the 8th Wall controller, returning a teardown that clears
  * them again. No-ops without XR8 (e.g. the stock-A-Frame VR preview).
  */

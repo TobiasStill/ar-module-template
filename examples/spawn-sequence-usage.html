@@ -1,0 +1,77 @@
+<!--
+  SPAWN SEQUENCE — usage & wiring examples
+  ==========================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from (into ArModule.vue's <template>).
+
+  Component involved (src/a-frame-components/spawn-sequence.ts):
+    spawn-sequence   Put on an (empty) entity; spawned models become its
+                     children, on its y = 0 plane. Works inside a
+                     place-in-front scene (waits for the placement).
+
+  With sounds: iOS only plays audio after a user gesture — start the
+  sequence from a tap (auto: false + an ArOverlay "Start" control that
+  dispatches `spawn-sequence-start`).
+-->
+
+<!-- ============================================================
+     Example 1 — a slat every second, 40 in total, 4 m in front of
+     wherever the viewer looks, turned towards them (the #4
+     Europaplatz II pattern).
+     ============================================================ -->
+<a-entity place-in-front="distance: 0">
+  <a-entity spawn-sequence="models: #slat1, #slat2, #slat3; interval: 1000; count: 40;
+                            distance: 4; variation: 1; facing: camera; scaleMin: 1.5; scaleMax: 1.5"></a-entity>
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — a timeline with one sound per object, random size
+     and heading, started from a tap (the #6 Birdkin(d) pattern).
+     ============================================================ -->
+<a-entity place-in-front="distance: 0">
+  <a-entity id="membranes"
+            spawn-sequence="auto: false; models: #membraneA, #membraneB; times: 0, 4, 6.5, 12, 20;
+                            sounds: #s1, #s2, #s3, #s4, #s5; facing: random; scaleMin: 0.4; scaleMax: 0.9;
+                            distanceModel: linear; maxDistance: 6; refDistance: 1"></a-entity>
+</a-entity>
+<!-- In a control's onClick (inside the tap):
+       document.getElementById('membranes').dispatchEvent(new CustomEvent('spawn-sequence-start')); -->
+
+<!-- ============================================================
+     Example 3 — stones dropping in at random spots within 3 m,
+     random order, endless every 2 s.
+     ============================================================ -->
+<a-entity spawn-sequence="models: #stone1, #stone2; order: random; mode: random; radius: 3;
+                          interval: 2000; count: 0; facing: random"></a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+    models         array    []           Model asset ids (gltf), cycled in `order`.
+    order          string   sequential   sequential | random.
+    interval       number   1000         ms between spawns (when `times` is empty).
+    delay          number   0            ms before the first spawn (interval mode).
+    times          array    []           Seconds after start for each spawn
+                                         (overrides interval/count).
+    count          int      10           Number of spawns in interval mode; 0 = endless.
+    auto           boolean  true         Start on init; false = on `spawn-sequence-start`.
+    mode           string   camera       camera (in front, along the view) | random.
+    distance       number   3            camera mode: distance from the viewer …
+    variation      number   0.5          … ± variation/2 (local units).
+    radius         number   3            random mode: radius around the entity origin.
+    floor          boolean  true         Put models on y = 0 (false: follow the
+                                         view ray's height, camera mode).
+    facing         string   camera       camera | random | none.
+    scaleMin/Max   number   1 / 1        Random scale range (equal = fixed).
+    growDuration   number   750          ms for the spring-up.
+    easing         string   easeOutElastic   A-Frame animation easing.
+    castShadow     boolean  true
+    receiveShadow  boolean  false
+    sounds         array    []           Audio asset ids, one per spawn (cycled).
+    volume, refDistance, maxDistance, rolloffFactor, distanceModel
+                                         Positional sound settings; distances
+                                         are multiplied by the entity's world scale.
+
+    Events in:   spawn-sequence-start, spawn-sequence-stop, spawn-sequence-clear
+    Events out:  spawn-sequence-spawned { el, index },  spawn-sequence-done
+-->

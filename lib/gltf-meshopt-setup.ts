@@ -16,11 +16,29 @@
 // on real projects.
 import { MeshoptDecoder } from "./vendor/meshopt_decoder.module.js";
 
-/** Idempotent: safe to call from every entry point (previews, host bundle). */
-export function patchGLTFLoaderWithMeshoptDecoder(): void {
+/**
+ * Idempotent: safe to call from every entry point (previews, host bundle).
+ *
+ * If THREE isn't there yet, retries every frame until it is. In the host,
+ * A-Frame is loaded before any module is imported, so the first call
+ * patches. In `npm run dev:ar`, ar.html injects 8frame dynamically and the
+ * module bundle (which calls this from manifest.ts) can evaluate first —
+ * measured: manifest.ts at ~65 ms, THREE at ~160 ms — and a one-shot check
+ * silently skipped the patch, so every compressed .glb failed with
+ * "setMeshoptDecoder must be called before loading compressed files".
+ * Models only start loading once the scene and the module are up, well
+ * after 8frame, so patching on a later frame is still in time.
+ */
+export function patchGLTFLoaderWithMeshoptDecoder(retryUntil = performance.now() + 30000): void {
   const w = window as any;
   const T = w.THREE;
-  if (!T?.GLTFLoader || T.GLTFLoader.__meshoptPatched) return;
+  if (!T?.GLTFLoader) {
+    if (performance.now() < retryUntil) {
+      requestAnimationFrame(() => patchGLTFLoaderWithMeshoptDecoder(retryUntil));
+    }
+    return;
+  }
+  if (T.GLTFLoader.__meshoptPatched) return;
 
   const OriginalGLTFLoader = T.GLTFLoader;
   function PatchedGLTFLoader(this: unknown, ...args: unknown[]) {

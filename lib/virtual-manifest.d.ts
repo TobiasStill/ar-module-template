@@ -14,3 +14,12 @@ declare module "virtual:ar-manifest" {
   export const manifest: AssetManifest;
   export default manifest;
 }
+
+// The A-Frame components this module uses, imported and keyed by name
+// (file name in src/a-frame-components/) — see autoComponents() in
+// vite.config.ts and scripts/used-components.ts.
+declare module "virtual:used-components" {
+  import type { ComponentDefinition } from "aframe";
+  export const usedComponents: Record<string, ComponentDefinition>;
+  export default usedComponents;
+}

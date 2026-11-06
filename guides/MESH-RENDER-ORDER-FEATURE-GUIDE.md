@@ -1,28 +1,56 @@
 # Mesh render order feature guide
 
+<!-- overview -->
+## Overview
+
+Decides which parts of one model are drawn first when they overlap. Many
+models consist of see-through layers — flames in front of a figure, a
+glass shell around a core, several veils on top of each other. Without
+help, the phone sometimes draws them in the wrong order, and parts flicker
+or seem to vanish behind each other. This feature lets you put the named
+parts of a model into a fixed sequence, like stacking transparent sheets
+in a chosen order, so the layering always looks right.
+
+<!-- /overview -->
+
+## Technical summary
+
 Sets three.js `renderOrder` on individual **named** meshes inside a single
 loaded model, so one asset's own overlapping/layered internal parts draw in
 a controlled order relative to *each other* — a finer granularity than
 [Render Order](RENDER-ORDER-FEATURE-GUIDE.md), which sets one uniform value
-across a *whole* model for ordering it relative to *other* objects. Ported
-from `Rosa_module`, where it was hardcoded to one specific asset's mesh
-names (`Mesh_1`..`Mesh_8`); this version takes the name→order mapping as a
-runtime attribute so it works on any glTF whose named sub-meshes need
-relative ordering, without editing source code per project. See
-[3. Under the hood](#3-under-the-hood) for why this had to become its own
-feature rather than folding into `render-order`, and
+across a *whole* model for ordering it relative to *other* objects. The
+name→order mapping is a runtime attribute, so it works on any glTF whose
+named sub-meshes need relative ordering, without editing source code per
+project. See [3. Under the hood](#3-under-the-hood) for why this is its own
+feature rather than an option on `render-order`, and
 [4. Incompatibilities](#4-incompatibilities-risks--troubleshooting) for a
-real conflict with [LOD + Billboard](LOD-BILLBOARD-FEATURE-GUIDE.md) this
-port found and documents rather than silently working around.
+real conflict with [LOD + Billboard](LOD-BILLBOARD-FEATURE-GUIDE.md).
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Rosa_module`, where it was hardcoded to one specific asset's
+mesh names (`Mesh_1`..`Mesh_8`); the port turned the mapping into the
+attribute (details in §3). The example model is generated, not taken from
+that project.
+
+<!-- /project-specific -->
 
 Files:
 
 ```
 src/a-frame-components/mesh-render-order.ts
 examples/mesh-render-order-usage.html   # scene wiring + full attribute reference
+examples/mesh-render-order-unlit-material-scene.html # combined
+                                    # with unlit-material
 ```
 
-**Assets:** none on this branch; use your own model.
+**Assets:** [`mesh-render-order-demo.glb`](../examples/assets/mesh-render-order-demo.glb) —
+five overlapping see-through panels with named meshes (`veil_back`,
+`veil_middle`, `veil_front`, `halo`, `core`), used only by the combined
+example above. Copy it into `src/assets/` to try that; it isn't required to use
+this component on your own assets.
 
 **Read [RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md](../cross-feature-reference-docs/RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md)
 before using this on anything transparent** — same underlying render-queue
@@ -34,19 +62,12 @@ too, just at named-submesh granularity instead of whole-model granularity.
 1. **Copy the file** — `mesh-render-order.ts` — into your project's own
    `src/a-frame-components/`. No path changes, no data files.
 
-2. **Register it** in your project's `src/manifest.ts`:
-
-   ```ts
-   import meshRenderOrder from "./a-frame-components/mesh-render-order";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "mesh-render-order": meshRenderOrder
-     }
-   };
-   ```
+2. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 3. **Find your mesh names** — open the glTF in a viewer/inspector (or your
    DCC tool's outliner) and note the exact mesh names as authored. These
@@ -69,7 +90,7 @@ too, just at named-submesh granularity instead of whole-model granularity.
 | `mesh-render-order` | string | `""` | Semicolon-separated `MeshName: number` pairs, e.g. `mesh-render-order="Flame_A: 1; Flame_B: 2; Body: 3"`. Every named mesh found inside the loaded model gets `node.renderOrder` set to its listed value; unlisted meshes are left untouched. A-Frame's schema system doesn't support fully dynamic keys, so this is one string attribute parsed by hand, not a multi-property object schema like most other components here. |
 
 ```html
-<a-entity gltf-model="#Rosa" mesh-render-order="orange flame: 1; violet flame: 2; person squat: 3"></a-entity>
+<a-entity gltf-model="#Character" mesh-render-order="veil_back: 1; veil_middle: 2; core: 3"></a-entity>
 ```
 
 A malformed entry (missing colon, non-numeric value) is skipped with a
@@ -108,7 +129,23 @@ versa on a sibling) — see [4](#4-incompatibilities-risks--troubleshooting)
 for the one case where combining them on the *same* entity's meshes causes
 a real conflict.
 
-### What changed from the source
+### Mesh names must really be in the file
+
+The component matches `node.name` exactly, so verify your own glTF's actual
+node names first (open it in a viewer, or log `mesh.name` for each
+traversed node during development) rather than assuming a name scheme.
+Compression tools such as `gltfpack` can strip or relocate mesh names (see
+[ASSET-COMPRESSION-GUIDE.md](../cross-feature-reference-docs/ASSET-COMPRESSION-GUIDE.md)) —
+compress from an original and check that the names survive.
+Three.js' `GLTFLoader` also changes names while loading: a space becomes an
+underscore, so a mesh called `left wing` in your 3D tool is `left_wing` here.
+`examples/mesh-render-order-unlit-material-scene.html` demonstrates this
+component against a real asset's names, working end-to-end.
+
+<!-- project-specific -->
+#### Project context: `Rosa_module` / `Rosa`
+
+##### What changed from the source
 
 The source (`Rosa_module`) hardcoded both the mesh names and their order
 directly in TypeScript:
@@ -121,7 +158,7 @@ const RENDER_ORDER: Record<string, number> = {
 
 — meaning every new project wanting this behavior on a *different* asset
 would need to hand-edit the component's source rather than just author an
-attribute. This port replaces the hardcoded map with the `mesh-render-order`
+attribute. The port replaced the hardcoded map with the `mesh-render-order`
 string attribute, parsed the same way the rest of this project's
 multi-value attributes are (e.g. compare to how `random-field` or
 `proximity-wave`'s schemas are authored) — semicolon-separated `key: value`
@@ -148,10 +185,20 @@ the model, not something a later compression step broke. This is a
 pre-existing data/source-code mismatch on the original branch, not a bug in
 either the source or the ported component — but it means whoever adopts
 this on a *new* asset should verify their own glTF's actual node names
-first (open it in a viewer, or log `mesh.name` for each traversed node
-during development) rather than assuming a name scheme.
+first rather than assuming a name scheme. The template doesn't ship that
+model: it is the student's work, so the combined example uses a generated one.
+
+<!-- /project-specific -->
 
 ## 4. Incompatibilities, risks & troubleshooting
+
+### Portal overwrites renderOrder in its subtree
+
+[`portal`](PORTAL-FEATURE-GUIDE.md) sets `renderOrder` on every mesh inside
+its `contents`, `walls`, `portalWall` and `door` (hiders 1, contents 2) and
+re-applies it whenever a mesh appears below it. Values set by this
+component inside a portal are overwritten — use it outside portals only
+(found while adding Portal).
 
 ### Can't fix everything — see the cross-feature guide
 

@@ -1,5 +1,33 @@
 # Asset compression guide
 
+<!-- overview -->
+## Introduction
+
+Everything a visitor sees in an AR scene — 3D models, their textures,
+pictures — has to travel over the mobile network to their phone before
+the scene can start. Big files mean long waiting with a loading bar, and
+sometimes a phone that runs out of memory. Compression is like packing a
+suitcase well: the same things, folded tighter, so they take up much less
+space.
+
+For 3D models this happens in two ways. The shape of a model — its
+thousands of corner points — is stored with slightly less precision, which
+nobody can see but makes the file a lot smaller. And the pictures painted
+onto models (textures) are converted into a modern, compact image format
+and, if they are larger than a phone screen could ever show, shrunk to a
+sensible size.
+
+The template has a small interactive tool that does all of this, always
+starting from an untouched original, so packing the same suitcase twice
+can never squash its contents. The phone, in turn, needs a matching
+"unpacker" to open compressed models — the template installs it
+automatically for every module. This guide explains the tool, the
+unpacker, and the few pitfalls to know about.
+
+<!-- /overview -->
+
+## About this guide
+
 Not tied to one feature — this is about compressing whatever `.glb` models
 and images *any* feature or project scene uses, and about one piece of
 runtime plumbing (the MeshOpt decoder patch) every project needs the moment
@@ -25,21 +53,40 @@ nothing renders, with a console error). This template patches every
   ES module, no dependency on the `THREE` global) plus a hand-written
   [`.d.ts`](../lib/vendor/meshopt_decoder.module.d.ts) — the vendored JS has
   no types of its own, and `vue-tsc --noEmit` fails outright
-  (`TS7016`) without one. This bit two separate branches independently
-  during earlier work on this project; don't drop the `.d.ts` file when
-  copying this elsewhere.
+  (`TS7016`) without one — don't drop the `.d.ts` file when copying this
+  elsewhere.
 - Called once, unconditionally, from `src/manifest.ts` (`patchGLTFLoaderWithMeshoptDecoder()`),
   the moment the module bundle is evaluated — before any model can load, in
   every context (both local previews and the real host). Idempotent and
   cheap even if a project never compresses a single asset.
+- **If `THREE` isn't there yet, it retries every frame** (for up to 30 s)
+  instead of giving up. In the real host A-Frame is loaded before any module
+  is imported, so the first call patches. But `npm run dev:ar`'s `ar.html`
+  injects 8frame dynamically, and the module bundle can evaluate first
+  (measured: `manifest.ts` at ~65 ms, `THREE` at ~160 ms). The earlier
+  one-shot check then silently skipped the patch, and every compressed
+  `.glb` failed in `dev:ar` with "setMeshoptDecoder must be called before
+  loading compressed files" — while working in `npm run dev` and the host.
+  Models only start loading once the scene and module are up, well after
+  8frame, so a patch on a later frame is still in time.
 
-**This part of the setup was ported directly** from `Gyumin_module`/`Jakob_module`/
-`Madleen_module`/`Rosa_module` — identical across all four, already
-validated across real production deployments. (`Fanyu_module` independently
-wrote a different version of the same fix, patching `GLTFLoader.prototype.load`
-instead of the constructor and using the real `meshoptimizer` npm package
-instead of a vendored file — not what this template uses, but worth knowing
-it exists if the vendored-constructor-patch approach ever needs revisiting.)
+An alternative approach to the same fix is to patch
+`GLTFLoader.prototype.load` instead of the constructor and use the real
+`meshoptimizer` npm package instead of a vendored file — not what this
+template uses, but worth knowing if the vendored-constructor-patch
+approach ever needs revisiting.
+
+<!-- project-specific -->
+### Project context: earlier projects
+
+The constructor patch was ported directly from `Gyumin_module`/
+`Jakob_module`/`Madleen_module`/`Rosa_module` — identical across all four,
+already validated across real production deployments. `Fanyu_module`
+independently wrote the alternative described above. The missing `.d.ts`
+bit two separate branches independently. The retry for a late `THREE` was
+found while porting the Augmented Bahnhofsviertel works.
+
+<!-- /project-specific -->
 
 ## 2. The compression tool: `scripts/compress-assets.ts`
 
@@ -55,12 +102,10 @@ For a **`.glb` model**:
 
 1. **Mesh compression** — `gltfpack -c -kn -km` against the pristine
    original (see §3). `-kn`/`-km` keep named nodes/meshes/materials —
-   without them, gltfpack strips names entirely by default. (This is
-   very likely why `Rosa_module`'s shipped, already-compressed `Rosa.glb`
-   had every node name stripped — see
-   [MESH-RENDER-ORDER-FEATURE-GUIDE.md](../guides/MESH-RENDER-ORDER-FEATURE-GUIDE.md)'s
-   §3, which flagged this as an open question before this tool existed to
-   answer it.)
+   without them, gltfpack strips names entirely by default, and
+   name-dependent components such as
+   [`mesh-render-order`](../guides/MESH-RENDER-ORDER-FEATURE-GUIDE.md)
+   stop working.
 2. **Name reattachment** — `-kn` alone is not sufficient, and this took
    direct verification to discover: it does NOT keep a name on the
    mesh-bearing node itself. Instead it wraps each named mesh node in a
@@ -120,20 +165,31 @@ source of truth**: if `uncompressed-assets/<name>` already exists, that's
 what gets compressed from — never the file currently sitting in
 `src/assets/`, which might already be a compressed derivative.
 
-This isn't just tidiness. It's the direct fix for a real bug found (and
-initially not understood) on `Gyumin_production`: converting 101 already
-mesh-compressed `.glb`s' textures to WebP by running `gltfpack` a *second*
-time silently re-quantized geometry that had already been quantized once —
-quantization is lossy, so a second pass compounds precision loss on top of
-the first, corrupting geometry a little more each time it happened. The
-eventual fix was reading/writing via `@gltf-transform`'s `NodeIO` with the
-meshopt decoder *and* encoder registered, so already-compressed mesh data
+This isn't just tidiness. Running `gltfpack` a *second* time on an
+already mesh-compressed `.glb` (e.g. just to convert its textures) silently
+re-quantizes geometry that has already been quantized once — quantization
+is lossy, so a second pass compounds precision loss on top of the first,
+corrupting geometry a little more each time it happens. Texture-only
+changes therefore go through `@gltf-transform`'s `NodeIO` with the meshopt
+decoder *and* encoder registered, so already-compressed mesh data
 round-trips through unchanged while only textures are touched — exactly
 what this tool's texture pass does (§2, step 3). Always compressing from a
-preserved pristine original makes the *original* mistake (accidentally
-re-running full mesh (re)compression on already-compressed output)
-structurally impossible to repeat — there's no code path where the tool
-ever compresses its own prior output.
+preserved pristine original makes accidental mesh (re)compression of
+already-compressed output structurally impossible — there's no code path
+where the tool ever compresses its own prior output.
+
+<!-- project-specific -->
+#### Project context: `Gyumin_production` / `Rosa_module`
+
+The double-quantization bug was found (and initially not understood) on
+`Gyumin_production`, where 101 already mesh-compressed `.glb`s' textures
+were converted to WebP with a second `gltfpack` run; the `NodeIO`
+round-trip was the eventual fix there. The stripped-names default of
+`gltfpack` is very likely why `Rosa_module`'s shipped `Rosa.glb` had every
+node name stripped — see
+[MESH-RENDER-ORDER-FEATURE-GUIDE.md](../guides/MESH-RENDER-ORDER-FEATURE-GUIDE.md) §3.
+
+<!-- /project-specific -->
 
 **Practical implication:** re-running the tool on the same file with
 different settings (a different quality, a different resize threshold) is
@@ -161,8 +217,7 @@ compounds with a previous run's result.
 - It doesn't touch anything outside `src/assets/` — in particular,
   **never** run this against `src/image-targets/*.jpg`. 8th Wall reads
   those by exact filename/format for tracking; converting or resizing them
-  risks breaking image detection, and they were explicitly excluded from
-  every historical WebP conversion pass for this reason.
+  risks breaking image detection.
 - It doesn't decimate/simplify mesh geometry (fewer triangles) — only
   quantizes and compresses the geometry gltfpack already has. Simplification
   is a separate, lossier decision this tool deliberately doesn't make for

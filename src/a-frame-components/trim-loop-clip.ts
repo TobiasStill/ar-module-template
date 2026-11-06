@@ -43,15 +43,32 @@ import type { ComponentDefinition } from "aframe";
 // `model-loaded`), matching the same "don't miss an event that already
 // fired" pattern every other model-loaded-driven component on this branch
 // already follows.
+//
+// `crossfade` (seconds, default 0 = off; only with `loop: repeat`), added from
+// the Augmented Bahnhofsviertel ports' crossfade-loop-clip: for animations
+// that were never authored to loop seamlessly (e.g. a baked cloth
+// simulation whose end doesn't match its start), every track is rebuilt so
+// that during the clip's last `crossfade` seconds the pose blends linearly
+// into the pose `crossfade` seconds into the clip, and the loop restarts
+// exactly there — the last frame of one pass equals the first of the next.
+// Works for any track type (morph weights, position, scale; quaternions are
+// re-normalised). Applied after the lead-in trim. Changes the motion
+// visibly near the loop point — a deliberate choice per model.
 
-declare const AFRAME: any;
-const THREE = (AFRAME as any).THREE;
+// THREE is only read at runtime (inside functions), never while this module
+// is evaluated: in `npm run dev:ar` the 8frame script is injected
+// dynamically and can finish after the module bundle runs, so a top-level
+// `AFRAME.THREE` lookup threw "AFRAME is not defined" and took the whole
+// manifest import (and with it the module) down.
+declare const THREE: any;
 
-const LOOP_MODES: Record<string, number> = {
-  once: THREE.LoopOnce,
-  repeat: THREE.LoopRepeat,
-  pingpong: THREE.LoopPingPong
-};
+function loopModes(): Record<string, number> {
+  return {
+    once: THREE.LoopOnce,
+    repeat: THREE.LoopRepeat,
+    pingpong: THREE.LoopPingPong
+  };
+}
 
 // Shift all tracks so the earliest keyframe is at t=0 and shrink the clip to the
 // keyframed span. Idempotent — a second pass shifts by 0.
@@ -88,6 +105,54 @@ function trimClipLeadIn(clip: any): void {
 // Maps unbounded elapsed time into a clip-relative 0..1 phase, replicating
 // each THREE.Loop* mode's wrap behavior. Shared across every action so they
 // can each be evaluated at `phase * ownDuration` and stay in lockstep.
+// Rebuilds a clip so its last `crossfade` seconds blend into its start and
+// the loop restarts `crossfade` seconds in (see the header).
+function buildCrossfadeLoop(clip: any, crossfade: number): any {
+  const start = 0;
+  const end = clip.duration;
+  const fade = Math.max(0, Math.min(crossfade, (end - start) / 2));
+  const loopStart = start + fade;
+  const fadeFrom = end - fade;
+
+  const tracks = clip.tracks.map((track: any) => {
+    const size = track.getValueSize();
+    const interpolant = track.createInterpolant();
+    const sample = (t: number): number[] => Array.from(interpolant.evaluate(t) as ArrayLike<number>).slice(0, size);
+    const isQuaternion = track.ValueTypeName === "quaternion";
+
+    const keyTimes: number[] = Array.from(track.times as ArrayLike<number>);
+    const times = new Set<number>([loopStart, end]);
+    for (const t of keyTimes) if (t > loopStart && t < end) times.add(t);
+    // Also take keys of the start segment that the fade samples from, so its
+    // shape isn't lost between the fade region's own keys.
+    for (const t of keyTimes) {
+      if (t > start && t < loopStart) times.add(fadeFrom + (t - start));
+    }
+    const sorted = [...times].sort((a, b) => a - b);
+
+    const newTimes: number[] = [];
+    const newValues: number[] = [];
+    for (const t of sorted) {
+      let value = sample(t);
+      if (fade > 0 && t >= fadeFrom) {
+        const alpha = (t - fadeFrom) / fade;
+        const target = sample(start + (t - fadeFrom));
+        value = value.map((v, i) => v + (target[i] - v) * alpha);
+        if (isQuaternion) {
+          const len = Math.hypot(...value) || 1;
+          value = value.map((v) => v / len);
+        }
+      }
+      newTimes.push(t - loopStart);
+      newValues.push(...value);
+    }
+    const TrackType = track.constructor;
+    return new TrackType(track.name, newTimes, newValues, track.getInterpolation());
+  });
+
+  return new THREE.AnimationClip(`${clip.name}-crossfade-loop`, end - loopStart, tracks);
+}
+
 function phaseFor(elapsed: number, mode: string): number {
   if (mode === "once") return Math.min(elapsed, 1);
   if (mode === "repeat") return elapsed % 1;
@@ -105,7 +170,9 @@ export default {
     // 'once' | 'repeat' | 'pingpong'. Default ping-pong = play forward then reverse.
     loop: { type: "string", default: "pingpong", oneOf: ["once", "repeat", "pingpong"] },
     // Hold the final frame when a non-looping ('once') clip finishes.
-    clampWhenFinished: { type: "boolean", default: false }
+    clampWhenFinished: { type: "boolean", default: false },
+    // Seconds to cross-fade the clip's end into its start (repeat only; 0 = off).
+    crossfade: { type: "number", default: 0 }
   },
 
   init() {
@@ -145,11 +212,13 @@ export default {
       ? clips
       : clips.filter((c: any) => c.name === self.data.clip);
 
-    const loopMode = LOOP_MODES[self.data.loop] ?? THREE.LoopPingPong;
+    const loopMode = loopModes()[self.data.loop] ?? THREE.LoopPingPong;
 
+    const crossfade = self.data.loop === "repeat" && self.data.crossfade > 0 ? self.data.crossfade : 0;
     for (const clip of wanted) {
       trimClipLeadIn(clip);
-      const action = self.mixer.clipAction(clip);
+      const playClip = crossfade ? buildCrossfadeLoop(clip, crossfade) : clip;
+      const action = self.mixer.clipAction(playClip);
       action.setLoop(loopMode, Infinity);
       action.clampWhenFinished = self.data.clampWhenFinished;
       action.reset();

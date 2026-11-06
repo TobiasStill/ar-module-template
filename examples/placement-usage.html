@@ -1,0 +1,110 @@
+<!--
+  PLACEMENT & RECENTER — usage & wiring examples
+  =================================================
+  Not compiled or served by anything in this project — reference markup to
+  copy from (into ArModule.vue's <template>).
+
+  Components involved:
+    place-in-front     (src/a-frame-components/place-in-front.ts)
+                       Put on ONE group entity holding the scene. Places it
+                       on the floor in front of the camera, facing the way
+                       the camera looks; re-places on `place-in-front-place`
+                       or (tapRecenter) on every tap. Writes the entity's
+                       position/rotation/scale — don't put attach-to,
+                       wander-in-band, proximity-wave or gesture-control on
+                       the SAME entity (put them on children instead).
+    tap-place-cursor   (src/a-frame-components/tap-place-cursor.ts)
+                       A ground cursor that follows the screen centre; a tap
+                       moves its `target` there.
+    —                  scene-tap-shared.ts: iOS-safe tap detection both use
+                       (pointer events on the canvas, not `click`).
+
+  The recenter button UI lives in ArOverlay.vue — see
+  examples/ar-overlay-usage.html.
+-->
+
+<!-- ============================================================
+     Example 1 — a scene placed 2 m in front of the viewer, every
+     tap on the scene re-places it.
+     ============================================================ -->
+<a-entity id="my-scene" place-in-front="distance: 2; tapRecenter: true">
+  <a-entity gltf-model="#Sculpture" position="0 0 0"></a-entity>
+  <a-light type="directional" intensity="0.8" position="1 3 2"></a-light>
+</a-entity>
+
+<!-- ============================================================
+     Example 2 — a scene authored in "8th Wall responsive" units:
+     the author imagined the camera 8 units above the floor and 8
+     units behind the origin (e.g. a port of an old 8th Wall
+     project with <a-camera position="0 8 8">). The scene is scaled
+     to the viewer: scale = camera height / 8, so it keeps its
+     proportions to the person holding the phone. Placement is
+     manual: only on `place-in-front-place` (e.g. a Start button).
+     ============================================================ -->
+<a-entity id="old-scene"
+          place-in-front="referenceHeight: 8; distance: 8; auto: false">
+  <a-entity gltf-model="#BigModel" position="0 0 -30" scale="6 6 6"></a-entity>
+</a-entity>
+<!-- In the <script>: document.getElementById('old-scene')
+       .dispatchEvent(new CustomEvent('place-in-front-place')); -->
+
+<!-- ============================================================
+     Example 3 — place by tapping a ground cursor. The cursor and
+     the target share the same parent (here the placed scene, so
+     everything stays inside the module's own space). The ring is
+     a CHILD of the cursor entity: the cursor's own rotation.y is
+     driven by followYaw.
+     ============================================================ -->
+<a-entity id="cursor-scene" place-in-front="distance: 0">
+  <a-entity tap-place-cursor="target: #placed-model">
+    <a-ring rotation="-90 0 0" radius-inner="0.15" radius-outer="0.2"
+            material="color: #fff; shader: flat; opacity: 0.8"></a-ring>
+  </a-entity>
+  <a-entity id="placed-model" gltf-model="#Sculpture"></a-entity>
+</a-entity>
+
+<!--
+  ATTRIBUTE REFERENCE
+  ====================
+
+  place-in-front
+    distance          number   2      Content units from the camera's floor
+                                      point to the entity's origin, along the
+                                      camera's (flattened) view direction.
+                                      Scales with referenceHeight.
+    referenceHeight   number   0      0 = keep the authored scale. > 0 = scale
+                                      the entity by cameraHeight / this (scene
+                                      authored for a camera this high).
+    floorHeight       number   0      World y of the floor.
+    auto              boolean  true   Place automatically once the camera has
+                                      a usable pose. false = only on
+                                      `place-in-front-place`.
+    hideUntilPlaced   boolean  true   Invisible until the first placement.
+    tapRecenter       boolean  false  Re-place on every tap on the scene.
+    fallbackAfter     number   3      Seconds without camera height (no XR8,
+                                      e.g. `npm run dev`) before placing anyway.
+    xrFallbackAfter   number   15     Same, with XR8 present.
+    fallbackScale     number   0.2    Scale used then (referenceHeight only).
+    scaleShadows      boolean  true   Scale directional shadow cameras with the
+                                      entity (bounds + near/far).
+    scaleSounds       boolean  true   Scale positional sounds' ref/maxDistance.
+    scaleLights       boolean  true   Scale point/spot lights' distance.
+
+    Events in:   place-in-front-place   re-place now
+    Events out:  place-in-front-placed  { scale }   after every placement
+                 place-in-front-tap     { clientX, clientY }   every scene tap
+                                        once placed
+
+  tap-place-cursor
+    target                 selector  —      Entity to move to the cursor on tap
+                                            (same parent as the cursor).
+    ground                 selector  —      Entity whose meshes are the ground.
+                                            Empty = the parent's y = 0 plane.
+    lift                   number    0.01   Cursor height above the ground
+                                            (parent units).
+    followYaw              boolean   true   Turn with the camera's heading.
+    hideTargetUntilPlaced  boolean   true   Target invisible until first tap.
+    smoothing              number    0.4    Per-frame lerp towards the hit point.
+
+    Events out:  tap-place-cursor-placed  { position }   on every placement
+-->

@@ -25,19 +25,19 @@
   mesh in a .lod-mesh child with ONE shared renderOrder value every frame,
   silently erasing any per-name distinction set here.
 
-  For a fully working, real-asset version of Example 1 below (not just a
-  placeholder id), see mesh-render-order-unlit-material-rosa-scene.html —
-  same mesh names, same bundled .glb, actually loads and renders.
+  For a fully working version of Example 1 below (not just a placeholder
+  id), see mesh-render-order-unlit-material-scene.html — same mesh names,
+  with a generated demo model.
 -->
 
 <!-- ============================================================
      Example 1 — a multi-layered model whose overlapping translucent
      parts (e.g. several flame/glow meshes plus a solid body) need a
      fixed draw order relative to EACH OTHER. Mesh names below match
-     the real node names of this project's own bundled
-     mesh-render-order-rosa.glb (#CharacterWithFlames is a
-     placeholder id here — swap in #mesh-render-order-rosa, or see
-     mesh-render-order-unlit-material-rosa-scene.html for that
+     examples/assets/mesh-render-order-demo.glb (#LayeredModel is a
+     placeholder id here — copy that file into src/assets/ and use
+     #mesh-render-order-demo, or see
+     mesh-render-order-unlit-material-scene.html for that
      working version). Mesh names must match the exact node names
      authored in your own glTF — verify with a glTF inspector or your
      DCC tool's outliner (see the feature guide §3 for a real case
@@ -45,11 +45,10 @@
      source asset).
      ============================================================ -->
 <a-entity
-    gltf-model="#CharacterWithFlames"
+    gltf-model="#LayeredModel"
     material="transparent: true"
-    mesh-render-order="orange flame: 1; violet flame: 2; green flame: 3; lime flame: 4; person squat: 5"
-    scale="12 12 12"
-    position="0 0 -30">
+    mesh-render-order="veil_back: 1; veil_middle: 2; veil_front: 3; halo: 4; core: 5"
+    position="0 0 0">
 </a-entity>
 
 <!-- ============================================================

@@ -1,5 +1,22 @@
 # Sound feature guide
 
+<!-- overview -->
+## Overview
+
+Turns objects in your AR scene into buttons that make sound. Point your
+phone at a floating sign or a model and it gently pulses to show "you can
+tap me"; tap it and its sound starts, tap again to pause, tap another one
+and the first falls silent while the new one plays — like a jukebox where
+only one record spins at a time. A small play/pause/stop bar at the bottom
+of the screen controls whatever is currently playing. For scenes with a
+background soundscape that should simply run on its own, a friendly
+"tap to enable sound" hint makes sure the phone actually lets the audio
+play.
+
+<!-- /overview -->
+
+## Technical summary
+
 A tappable/gazable 3D button system (`ar-button` + `ar-button-manager`) and a
 sound-playback feature built on top of it (`sound-button` + `sound-controller`
 + a 2D play/pause/stop GUI panel). The button system is generic — reusable by
@@ -21,14 +38,29 @@ src/a-frame-components/
   sound-controller.ts       # sound: one per module, play/pause/stop state machine
   sound-button.ts            # sound: plays/pauses/stops a `sound` entity on tap
   sound-unlock-audio.ts      # sound: shared iOS/Web Audio unlock helper
-src/assets/
+  sound-scene-audio.ts       # sound: optional helpers for plain `sound` entities (see below)
+examples/assets/
   sound-start.webp, sound-stop.webp, sound-play.webp, sound-pause.webp
-src/manifest.ts             # registers all 5 components above
+(components register automatically by file name — nothing to add to src/manifest.ts)
 examples/
   ar-button-usage.html       # 3D scene wiring + full attribute reference
   sound-gui-panel.html        # copy/paste block for the 2D GUI panel
   sound-unlock-overlay-usage.html # copy/paste block for the ambient-audio unlock overlay
 ```
+
+<!-- project-specific -->
+### Project context: origin
+
+Ported from `Jakob_module`. There, three tightly-coupled components
+(`sound-button-manager`/`sound-button-group`/`sound-button`) mixed gaze/tap
+detection with sound playback in the same files; the template split them
+into the two layers described in [3. Under the hood](#3-under-the-hood). The
+lack of cross-module tap arbitration (§4) was already true of that original
+`sound-button-manager`. The ambient-audio unlock overlay came from
+`Fanyu_module`, the scene-audio helpers from the Augmented Bahnhofsviertel
+ports (see §3).
+
+<!-- /project-specific -->
 
 ## 1. Step-by-step: adding this to a new project
 
@@ -44,34 +76,17 @@ i.e. it already has `src/manifest.ts`, `src/a-frame-components/`,
    not a folder.
 
 2. **Copy the icon assets** — copy the four `sound-*.webp` files from
-   `src/assets/` into your project's own `src/assets/`. These are the
+   `examples/assets/` into your project's own `src/assets/`. These are the
    restart/stop/play/pause icons the GUI panel needs; swap them for your own
    art later if you want, keeping the same 4 file names (or update
    `iconSrc()` calls in step 5 if you rename them).
 
-3. **Register the components** — in your project's `src/manifest.ts`, import
-   the 5 components and add them to the `components` map, e.g.:
-
-   ```ts
-   import arButtonManager from "./a-frame-components/ar-button-manager";
-   import arButton from "./a-frame-components/ar-button";
-   import soundController from "./a-frame-components/sound-controller";
-   import soundButton from "./a-frame-components/sound-button";
-
-   export const manifest: Manifest = {
-     assets: assetManifest.assets,
-     components: {
-       // ...whatever you already have...
-       "ar-button-manager": arButtonManager,
-       "ar-button": arButton,
-       "sound-controller": soundController,
-       "sound-button": soundButton
-     }
-   };
-   ```
-
-   (`sound-unlock-audio.ts` is imported by `sound-controller.ts` directly —
-   it's not an A-Frame component and isn't registered in the manifest.)
+3. **Nothing to register** — every component file in
+   `src/a-frame-components/` is registered automatically under its file
+   name as soon as the scene uses it (README, "The manifest"); unused ones
+   aren't even bundled. Only a component registered under a different name,
+   or one whose name is built at runtime, needs a manual entry in
+   `src/manifest.ts`.
 
 4. **Add the sound assets you actually want to play** — drop your own
    `.mp3`/`.wav`/etc. into `src/assets/`; each becomes an asset id
@@ -211,10 +226,8 @@ all) and the same attribute table with more context.
 
 ### Why two layers
 
-The original implementation (three tightly-coupled components:
-`sound-button-manager`/`sound-button-group`/`sound-button`) mixed "how do I
-detect a gaze/tap on a 3D object" with "how do I play a sound" in the same
-files. This version splits that into:
+"How do I detect a gaze/tap on a 3D object" and "how do I play a sound" are
+two separate questions, so the feature splits them into two layers:
 
 - **Generic layer** — `ar-button` + `ar-button-manager`. Knows nothing about
   audio. Answers exactly one question: which button (if any) is the camera
@@ -337,6 +350,42 @@ named `pauseAudio`, not `pause` — assigning to `pause`/`play` collides with
 A-Frame's own reserved component lifecycle method names and would silently
 deregister the component from the tick loop when called.
 
+### `sound-scene-audio.ts` (optional helpers)
+
+For scenes whose plain A-Frame `sound` entities simply start together after
+one "Start/Play" tap (no per-button control):
+
+- `playSounds(root)` — unlocks audio (`sound-unlock-audio.ts`) and starts
+  every `sound` under `root`. Call synchronously inside the tap handler
+  (e.g. an [AR Overlay](AR-OVERLAY-FEATURE-GUIDE.md) control's `onClick`).
+- `pauseSoundsWhileHidden(root)` — pauses the sounds that are actually
+  playing while the page is hidden, resumes exactly those afterwards;
+  returns a teardown for `onUnmounted`.
+- `scaleSoundDistances(root, scale)` — multiplies positional sounds'
+  refDistance/maxDistance (on the pooled PositionalAudio objects, so a
+  playing sound isn't restarted) for scenes scaled by `scale`.
+
+<!-- project-specific -->
+#### Project context: Augmented Bahnhofsviertel
+
+These helpers came from the Augmented Bahnhofsviertel ports
+(`augmented-bahnhofsviertel`, there named `legacy-audio.ts`), whose works
+start all their sounds together after one Start/Play tap.
+
+<!-- /project-specific -->
+
+Copy `sound-scene-audio.ts` together with `sound-unlock-audio.ts`; nothing
+to register.
+
+```ts
+import { playSounds, pauseSoundsWhileHidden } from "./a-frame-components/sound-scene-audio";
+const root = ref<HTMLElement | null>(null);   // ref="root" on the module's root <a-entity>
+let stop = () => {};
+onMounted(() => { if (root.value) stop = pauseSoundsWhileHidden(root.value); });
+onUnmounted(() => stop());
+// control: { id: "play", html: "PLAY", onClick: () => root.value && playSounds(root.value) }
+```
+
 ### `sound-unlock-audio.ts`
 
 A plain exported function, not a component. Web Audio requires a real user
@@ -351,28 +400,39 @@ a silent `HTMLAudioElement` play as a fallback for older Safari).
 
 ### The tap-to-enable-sound overlay
 
-Ported from `Fanyu_module`'s ArModule.vue, which had this entangled with
-that project's own specific ambient soundscape — four looping clips, each
-offset into its own timeline by a fixed amount (`0s`/`10s`/`20s`/`30s`) so
-they don't all hit their quiet stretches in sync. That staggering is a
-choreography of *that project's specific audio content* (it assumes 4
-same-length clips exist), not a portable mechanism — per
-`ADDING-FEATURES-WORKFLOW.md`'s step 5 ("artistic / project-specific
-content... doesn't travel"), it was deliberately left behind. What's ported
-is only the generic mechanism: try to unlock eagerly on mount (in case an
-earlier gesture already did), listen for the next real gesture anywhere on
-the page if not, and show a friendly prompt if neither has happened within
-`UNLOCK_OVERLAY_DELAY_MS`.
+The overlay is only the generic unlock mechanism: try to unlock eagerly on
+mount (in case an earlier gesture already did), listen for the next real
+gesture anywhere on the page if not, and show a friendly prompt if neither
+has happened within `UNLOCK_OVERLAY_DELAY_MS`. How the ambient sounds
+themselves are scheduled (e.g. several loops offset against each other) is
+the project's own content, not part of the feature.
 
-**Deliberately decoupled from any specific sound entity.** The source's
-overlay code directly held template refs to its project's own 4 sound
-entities (to look up `.sceneEl.audioListener.context` and to schedule their
-playback). This port doesn't reference any sound entity at all — it calls
+**Deliberately decoupled from any specific sound entity.** The overlay
+doesn't reference any sound entity at all — it calls
 `THREE.AudioContext.getContext()` directly (the same shared, page-wide
 context `sound-unlock-audio.ts` itself resumes) rather than reading it off
 of one. That makes the overlay reusable regardless of how many ambient
 sound entities a project has, or how their playback is scheduled — entirely
 the project's own concern, same as any other `sound` component usage.
+
+<!-- project-specific -->
+#### Project context: `Fanyu_module`
+
+The overlay was ported from `Fanyu_module`'s `ArModule.vue`, which had it
+entangled with that project's own ambient soundscape — four looping clips,
+each offset into its own timeline by a fixed amount (`0s`/`10s`/`20s`/`30s`)
+so they don't all hit their quiet stretches in sync. That staggering is a
+choreography of that project's specific audio content (it assumes four
+same-length clips exist), not a portable mechanism — per
+`ADDING-FEATURES-WORKFLOW.md`'s step 5 ("artistic / project-specific
+content... doesn't travel"), it was deliberately left behind. The source's
+overlay code also held template refs to its four sound entities (to look up
+`.sceneEl.audioListener.context` and to schedule their playback); the
+template version replaced that with the shared context described above.
+The capture-phase listener below matches that source's verified-working
+behavior.
+
+<!-- /project-specific -->
 
 **Why the listener is capture-phase, not bubble-phase.** `pointerdown`/
 `keydown` are added with `{capture: true}`, called synchronously inside the
@@ -384,8 +444,8 @@ stop the event from reaching a bubble-phase listener instead. In practice
 this rarely changes the outcome here — the one case it would matter for
 (tapping `sound-gui-panel.html`'s own buttons, which call `.stop`) already
 independently unlocks audio via `sound-controller`'s own direct
-`unlockAudio()` call — but it costs nothing and matches the verified-working
-source behavior exactly.
+`unlockAudio()` call — but it costs nothing and is the verified-working
+setup.
 
 **Only marks `audioUnlocked` once actually confirmed** (`ctx.state ===
 "running"`), never merely attempted — see the code comment in
@@ -395,28 +455,41 @@ regardless would strand the page permanently silent with no further retry).
 
 ## 4. Incompatibilities, risks & troubleshooting
 
-### Component name collisions across co-mounted modules
+### One tap can also recenter or place
+
+[Placement & Recenter](PLACEMENT-FEATURE-GUIDE.md)'s tap detection
+(`tapRecenter`, `tap-place-cursor`) reacts to every tap on the canvas — a
+tap on an `ar-button` therefore also re-places the scene / moves the
+cursor target. Use a recenter button ([AR Overlay](AR-OVERLAY-FEATURE-GUIDE.md))
+instead of `tapRecenter` in scenes with tappable buttons.
+
+### Component name collisions across modules
 
 The host (and the local preview harness, `lib/host-runtime.ts`) registers
 manifest components via `AFRAME.registerComponent(name, def)`, **skipping
-any name already registered**. If this project's host mounts multiple
-`ArModule`s side by side (the README's camera-sharing language implies it
-does), and two different modules both register a component under the exact
-same name (e.g. two different forks both shipping their own `ar-button`),
-**only the first one to mount wins** — every other module using that name
-silently runs the *first* module's code, not its own.
+any name already registered** — and A-Frame can't unregister, so a name
+stays taken for the rest of the session. The host shows one module at a
+time (`selectedModule` in `ArScene.vue`, checked at `0651352`), but a
+visitor opens several one after another: if two different modules register
+a component under the exact same name (e.g. two different forks both
+shipping their own `ar-button`), **the first one opened in that session
+wins** — every module opened later silently runs the *first* module's
+code, not its own.
 
 **Practical implication:** don't modify the behavior of `ar-button.ts` /
 `ar-button-manager.ts` / `sound-button.ts` / `sound-controller.ts` in a way
 that changes their public contract (schema fields, event names) for just one
 project, while keeping the same component names — that change would leak
-into every other simultaneously-mounted module that also happens to use
-those names. If a project needs genuinely different behavior, rename the
-component (and update `manifest.ts` and the scene markup accordingly).
+into every other module opened in the same session that also happens to
+use those names. If a project needs genuinely different behavior, rename the
+component file (the file name is the registered name) and the scene markup
+accordingly.
 
 ### Multiple modules ⇒ multiple independent `ar-button-manager`s
 
-Each mounted module that uses this feature gets its **own**
+Only relevant if several modules are mounted at once — the current host
+shows one at a time (see above), so today this doesn't occur. Each mounted
+module that uses this feature gets its **own**
 `ar-button-manager` instance, each adding its own `document` `pointerdown`/
 `pointerup` listeners and each raycasting only against **its own**
 registered buttons — it has no visibility into other modules' buttons. Two
@@ -425,8 +498,7 @@ consequences:
 - If two different modules' buttons happen to overlap in screen space, a
   single physical tap can independently satisfy both managers' "was
   something of mine gazed" check and fire `ar-button-tap` in **both**
-  modules — there's no cross-module arbitration by design (this was already
-  true of the original `sound-button-manager`, not a regression here).
+  modules — there's no cross-module arbitration by design.
 - Listener/raycast cost scales with the number of co-mounted modules using
   this feature. Fine at the scale of a handful of modules with a handful of
   buttons each; don't put hundreds of `ar-button`s in one module.
@@ -474,8 +546,8 @@ it from the raycast (can't be gazed/tapped) but does **not** touch
   the same `object3D.scale` that both the visual fade-out and the raycast
   (via `matrixWorld`) depend on, a button faded near-invisible also has a
   near-zero trigger zone, and a pulsing button's zone grows slightly too —
-  this mirrors the original hit-area design (a child mesh that also
-  inherited scale) and is intentional, not a bug.
+  intentional (the zone behaves like a hit-area mesh that inherits the
+  button's scale), not a bug.
 - **Give the camera-facing axis some thickness.** A zero-thickness zone on
   the axis facing the camera is still mathematically raycastable head-on,
   but is much harder to actually hit at oblique/grazing viewing angles.
@@ -498,9 +570,9 @@ page. A positive side effect: once any module's tap unlocks it (via
 `sound-unlock-audio.ts`), it stays unlocked for **every** module's audio,
 not just the one that triggered it. The flip side:
 `sound-controller`'s "only one sound plays" guarantee is scoped to buttons
-**within its own module** — if two different co-mounted modules both use
-this sound feature, their audio can play concurrently and overlap; neither
-controller can see or stop the other.
+**within its own module** — if two different modules were mounted at once
+(the current host shows one at a time), their audio could play
+concurrently and overlap; neither controller can see or stop the other.
 
 ### The unlock overlay's own document-level listeners
 
@@ -554,9 +626,10 @@ That feature's example uses `xrextras-play-video` (the tap-to-play/stop
 video on an image target). Reading its bundled source
 (`node_modules/@8thwall/xrextras/dist/xrextras.js`): it tags itself with
 `class="cantap"` and listens for a plain `click` event on its own element —
-i.e. it relies on **A-Frame's own cursor/raycaster system**, presumably
-configured by the host on the shared `<a-camera>` to hit `.cantap` elements
-(see the `raycaster` example in `lib/manifest.types.ts`), not on anything in
+i.e. it relies on **A-Frame's own cursor/raycaster system**, configured by
+the host on the shared `<a-camera>` (`raycaster="objects: .cantap;
+interval: 100"`, `cursor="fuse: false; rayOrigin: mouse"`, raycaster off in
+the host's drawing mode — `ArScene.vue` at `0651352`), not on anything in
 this feature.
 
 Two things worth testing if a project combines a tappable image-target video

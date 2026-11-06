@@ -1,5 +1,7 @@
 # Quick start guide
 
+**Demo files:** `jellyfish-video`, `liquid-texture-target-1/2` and `mesh-render-order-rosa` were removed from this branch, so examples naming them need your own files. The `feature_template` branch has current examples and generated demo files.
+
 This is a short, plain-language starting point for **artists and other
 non-programmers** building an AR project on top of `ar-module-template`. It
 does **not** explain any individual feature or how any component works —

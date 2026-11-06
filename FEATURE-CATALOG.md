@@ -1,5 +1,7 @@
 # Feature catalog
 
+**Demo files:** `jellyfish-video`, `liquid-texture-target-1/2` and `mesh-render-order-rosa` were removed from this branch, so examples naming them need your own files. The `feature_template` branch has current examples and generated demo files.
+
 A quick-lookup index of every feature universalized into this branch: what
 it does, which components implement it, and which assets it uses. Kept
 up to date as part of the workflow in `ADDING-FEATURES-WORKFLOW.md` (step
@@ -39,7 +41,7 @@ convention.
 | [Mirror Shard](#mirror-shard) | A field of 112 glass shards that ripple outward when tapped | [`visual-effect`](#tag-visual-effect), [`interaction`](#tag-interaction), [`procedural`](#tag-procedural) | `Zhichang_module` | [MIRROR-SHARD-FEATURE-GUIDE.md](guides/MIRROR-SHARD-FEATURE-GUIDE.md) |
 | [Liquid Texture](#liquid-texture) | Generic procedural "liquid ink" texture, optionally reveals a target image | [`procedural`](#tag-procedural), [`visual-effect`](#tag-visual-effect) | `Zhichang_module` | [LIQUID-TEXTURE-FEATURE-GUIDE.md](guides/LIQUID-TEXTURE-FEATURE-GUIDE.md) |
 
-Not covered here: `main`'s own baseline demo content (`jellyfish-video.mp4`)
+Not covered here: `main`'s own baseline demo content
 — that's the template's own placeholder scene asset, not a universalized
 feature (the *image tracking* it used to be paired with, above, now is).
 Also not covered: [Template infrastructure](#template-infrastructure)
@@ -141,7 +143,6 @@ XR8 at all, so this can never be seen working there.
 | Asset | Used by | Function |
 |---|---|---|
 | [`video-target.json`](src/image-targets/video-target.json) + 4 images | `examples/image-tracking-usage.html` | 8th Wall image-target compiler tool output for the example target — cross-checked against 8th Wall's own official reference project's export format, schema matches |
-| [`jellyfish-video.mp4`](src/assets/jellyfish-video.mp4) | `examples/image-tracking-usage.html` | The example's video content, played once the target is detected |
 
 Examples: [`image-tracking-usage.html`](examples/image-tracking-usage.html)
 
@@ -415,10 +416,8 @@ and the guide's own incompatibilities section.
 
 | Asset | Used by | Function |
 |---|---|---|
-| [`mesh-render-order-rosa.glb`](src/assets/mesh-render-order-rosa.glb) | `examples/mesh-render-order-unlit-material-rosa-scene.html` | `Rosa_module`'s character model, pulled from the plain `Rosa` branch's own uncompressed copy instead (real node names intact — see the guide's §3 for why `Rosa_module`'s own compressed copy couldn't be used), so the example recreating `Rosa_module`'s scene actually renders |
 
-Examples: [`mesh-render-order-usage.html`](examples/mesh-render-order-usage.html),
-[`mesh-render-order-unlit-material-rosa-scene.html`](examples/mesh-render-order-unlit-material-rosa-scene.html)
+Examples: [`mesh-render-order-usage.html`](examples/mesh-render-order-usage.html)
 
 ## Material Properties
 
@@ -515,8 +514,6 @@ feature prefix — see the naming-convention comment in `src/manifest.ts`).
 
 | Asset | Used by | Function |
 |---|---|---|
-| [`liquid-texture-target-1.webp`](src/assets/liquid-texture-target-1.webp) | `examples/liquid-texture-usage.html`, `examples/mirror-shard-liquid-texture-scene.html` | Example `target` image (blue/civic-themed illustration) demonstrating the ink revealing a real photo |
-| [`liquid-texture-target-2.webp`](src/assets/liquid-texture-target-2.webp) | `examples/liquid-texture-usage.html`, `examples/mirror-shard-usage.html` | Second example `target` image (orange-themed illustration), paired with a different palette |
 
 Related feature: [Mirror Shard](#mirror-shard) (consumes this component's
 rendered texture for its inner illustration layer).

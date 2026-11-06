@@ -26,8 +26,7 @@ src/image-targets/video-target_luminance.jpg  # /  same compiler-tool export
 examples/image-tracking-usage.html   # scene wiring + full attribute reference
 ```
 
-**Assets:** [`jellyfish-video.mp4`](../src/assets/jellyfish-video.mp4) — the
-example's video content, played once the target is detected.
+**Assets:** none on this branch; the example needs a video of your own.
 
 **Not active by default** — `src/manifest.ts` doesn't currently register
 any `imageTargets`. This template still ships the example target's files
@@ -63,8 +62,7 @@ adding it back to `manifest.ts` is an explicit step — see [1](#1-step-by-step-
    ```
 
 3. **Drop in whatever content should be anchored to the target** — e.g. the
-   video asset this example uses (`src/assets/jellyfish-video.mp4`, or your
-   own `.mp4`/`.glb`/image) — into `src/assets/` as usual.
+   your own `.mp4`/`.glb`/image — into `src/assets/` as usual.
 
 4. **Wire it into the scene** — see
    [2. Entities & attributes](#2-entities--attributes) or copy directly

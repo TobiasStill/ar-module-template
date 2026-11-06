@@ -20,18 +20,9 @@ Files:
 ```
 src/a-frame-components/mesh-render-order.ts
 examples/mesh-render-order-usage.html   # scene wiring + full attribute reference
-examples/mesh-render-order-unlit-material-rosa-scene.html # recreates
-                                    # Rosa_module's actual scene, combined
-                                    # with unlit-material
 ```
 
-**Assets:** [`mesh-render-order-rosa.glb`](../src/assets/mesh-render-order-rosa.glb) —
-used only by the combined example above; not required to use this
-component on your own assets. The scene it recreates is `Rosa_module`'s own
-(matching the "Source" line above), but the `.glb` itself was pulled from a
-different branch, plain `Rosa` — see [3](#3-under-the-hood) for why
-`Rosa_module`'s own copy of this asset couldn't be used for a working
-example.
+**Assets:** none on this branch; use your own model.
 
 **Read [RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md](../cross-feature-reference-docs/RENDER-ORDER-AND-TRANSPARENCY-GUIDE.md)
 before using this on anything transparent** — same underlying render-queue
@@ -144,8 +135,7 @@ value.
 
 - `Rosa_module`'s copy (152 KB, almost certainly run through a compressor
   like `gltfpack`) has every mesh-bearing node's `name` stripped entirely.
-- The plain `Rosa` branch's own copy (435 KB, uncompressed — now also
-  bundled here as `mesh-render-order-rosa.glb`, see the Files list above)
+- The plain `Rosa` branch's own copy (435 KB, uncompressed)
   still has its original names: `"orange flame"`, `"violet flame"`,
   `"green flame"`, `"lime flame"`, `"person squat"`, `"person stand"`,
   `"person nails"` — seven meshes, not eight.
@@ -160,8 +150,6 @@ either the source or the ported component — but it means whoever adopts
 this on a *new* asset should verify their own glTF's actual node names
 first (open it in a viewer, or log `mesh.name` for each traversed node
 during development) rather than assuming a name scheme.
-`examples/mesh-render-order-unlit-material-rosa-scene.html` demonstrates
-this component against the asset's real names, working end-to-end.
 
 ## 4. Incompatibilities, risks & troubleshooting
 

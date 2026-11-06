@@ -142,23 +142,8 @@ only has meaning with two inks. `pigmentBoost`/`hash`/`noise`/`fbm`/`swirl`/
 
 ### Bundled example textures
 
-`src/assets/liquid-texture-target-1.webp` and `liquid-texture-target-2.webp`
-(the source's `single-liquid-final-target.webp` and
-`authoritarian-orange-final-target-v1.webp`, renamed to this template's
-`<component>-<name>` convention) are real, working example images, brought
-in specifically so `examples/liquid-texture-usage.html` can demonstrate the
-`target` attribute against an actual photo rather than a placeholder id
-that doesn't resolve to anything. This is a deliberate, narrow exception to
-`ADDING-FEATURES-WORKFLOW.md`'s "don't bring project-specific artistic
-content into the template" guidance from the earlier features' guides — the
-two illustrations themselves are generic enough (abstract silhouette
-scenes, no text or explicit political symbols) to serve as reusable *demo*
-content once separated from the source's "democratic blue vs. authoritarian
-orange" framing and file names, unlike e.g. the sound feature's Wand models
-or mirror-shard's own source narrative shader math, which weren't brought
-over at all. Treat them as placeholder/demo assets a real project replaces
-with its own imagery, same as any other example content in this template —
-not as this component's permanent default look.
+The example textures were removed from this branch. Use your own image;
+`feature_template` has generated ones.
 
 Both are ~1100-1450px WebP, already reasonably sized for a texture (this
 component's own render target tops out at 1024px even at `quality: high`),
